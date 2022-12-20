@@ -15,13 +15,16 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 
+if(q)
+    add_definitions(-DQ_ONLY)
+endif()
 
 if(matchmaker_DL STREQUAL "ON")
     add_definitions(-DMM_DYNAMIC_LOADING)
 else()
     get_filename_component(rpath_dir "${matchmaker_DIR}/.." REALPATH)
     set(CMAKE_INSTALL_RPATH "${rpath_dir}")
-    find_package(matchmaker 3.0.0 REQUIRED)
+    find_package(matchmaker 3.1.0 REQUIRED)
 endif()
 
 
@@ -36,8 +39,20 @@ include_directories(
 set(
     diggable_srcs
     src/diggable.cpp
+    src/BookViewer.cpp
+    src/BookViewer.h
+    src/LocationViewer.cpp
+    src/LocationViewer.h
+    # src/TermViewer.cpp
+    # src/TermViewer.h
+    # src/CompletionStack.cpp
     src/MainWindow.cpp
-    src/TextWidget.cpp
+    src/MainWindow.h
+    src/matchmaker.cpp
+    src/matchmaker.h
+    src/Settings.h
+    src/Viewer.cpp
+    src/Viewer.h
 )
 
 
