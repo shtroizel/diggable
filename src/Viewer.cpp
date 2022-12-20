@@ -21,8 +21,9 @@ float const HOVER_BOX_MARGIN_SIZE{2};
 
 
 
-Viewer::Viewer(int x, int y, int w, int h)
+Viewer::Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
     : Fl_Widget{x, y, w, h, nullptr}
+    , scrollbar_location{sl}
 {
     fl_font(MONO_FONT, FONT_SIZE);
     line_height = (int) (fl_size() * LINE_HEIGHT_FACTOR);
@@ -35,6 +36,8 @@ Viewer::Viewer(int x, int y, int w, int h)
         index_of_space = -1;
         abort();
     }
+
+    reposition();
 }
 
 
@@ -69,24 +72,45 @@ void Viewer::draw()
 
 void Viewer::draw_scroll()
 {
-    // clear
-    fl_rectf(x(), y(), scrollbar_width, h(), Settings::Instance::grab().as_background_color());
+    // clear label
+    fl_rectf(
+        scrollbar_label_x,
+        y(),
+        scrollbar_label_width,
+        h(),
+        Settings::Instance::grab().as_background_color()
+    );
 
-    fl_draw_box(FL_BORDER_FRAME,
-                x(),
-                y(),
-                scrollbar_width,
-                h(),
-                Settings::Instance::grab().as_foreground_color());
+    // clear bar
+    fl_rectf(scrollbar_x, y(), scrollbar_width, h(), Settings::Instance::grab().as_background_color());
 
-    if (max_scroll_offset == 0)
+    // only draw scrollbar when needed
+    if (max_scroll_offset <= 0)
+    {
+        // std::cout << "max_scroll_offset :  " << max_scroll_offset
+        //           << "        y() + h() :  " << y() + h() << std::endl;
+        return;
+    }
+
+    // draw scrollbar
+    fl_draw_box(
+        FL_BORDER_FRAME,
+        scrollbar_x,
+        y(),
+        scrollbar_width,
+        h(),
+        Settings::Instance::grab().as_foreground_color()
+    );
+
+    // be extra carefull to avoid division by 0
+    if (max_scroll_offset <= 0)
         scroller_top = 0;
     else
         scroller_top = y() + scroll_offset * (h() - scroller_height) / max_scroll_offset;
 
-    // fl_draw_box(scroller_boxtype,
+    // draw scroller (within scrollbar)
     fl_draw_box(FL_FLAT_BOX,
-                x(),
+                scrollbar_x,
                 scroller_top,
                 scrollbar_width,
                 scroller_height,
@@ -103,6 +127,7 @@ int Viewer::handle(int event)
             // [[fallthrough]];
         case FL_NO_EVENT:
         case FL_FOCUS:
+            reposition();
             offsets_dirty = true;
             redraw();
             if (scroll_offset > max_scroll_offset)
@@ -117,7 +142,10 @@ int Viewer::handle(int event)
         case FL_PUSH:
             {
                 int const ex = Fl::event_x();
-                if (ex <= x() + scrollbar_width)
+                // std::cout << "y(): " << y() << std::endl;
+                // std::cout << "h(): " << h() << std::endl;
+                // std::cout << "max_scroll_offset: " << max_scroll_offset << std::endl;
+                if (ex >= scroll_event_x_min && ex <= scroll_event_x_max && max_scroll_offset > 0)
                 {
                     dragging_scroller = true;
                     scroll_to_y(Fl::event_y());
@@ -380,29 +408,7 @@ int Viewer::handle(int event)
                     }
 
                 }
-
-                // if (ex <= scrollbar_width)
-                // {
-                //     int scroller_top = y() + first_visible_chapter *
-                //             (h() - scroller_height) / matchmaker::chapter_count(0);
-                //     if (ey > scroller_top && ey < scroller_top + scroller_height)
-                //     {
-                //         scroller_color = FL_SELECTION_COLOR;
-                //         scroller_boxtype = FL_ENGRAVED_FRAME;
-                //     }
-                //     else
-                //     {
-                //         scroller_color = foreground_color();
-                //         scroller_boxtype = FL_BORDER_FRAME;
-                //     }
-                // }
-                // else
-                // {
-                //     scroller_color = foreground_color();
-                //     scroller_boxtype = FL_BORDER_FRAME;
-                // }
             }
-            // hovered = true;
             redraw();
             return 1;
 
@@ -421,7 +427,7 @@ int Viewer::handle(int event)
             return 1;
 
         case FL_MOUSEWHEEL:
-            if (max_scroll_offset < h())
+            if (max_scroll_offset <= 0)
             {
                 scroll_offset = 0;
                 return 1;
@@ -496,12 +502,13 @@ void Viewer::draw_content()
         offsets.clear();
 
     // clear
-    fl_rectf(x() + scrollbar_width, y(),
-             w() - scrollbar_width,
-             h(),
-             Settings::Instance::grab().as_background_color());
-
-//     fl_rectf(x() + left_margin, y(), w() - left_margin, h(), background_color());
+    fl_rectf(
+        content_x - content_margin,
+        y(),
+        content_width + (content_margin * 2),
+        h(),
+        Settings::Instance::grab().as_background_color()
+    );
 
     fl_color(Settings::Instance::grab().as_foreground_color());
     fl_font(MONO_FONT, FONT_SIZE);
@@ -513,7 +520,7 @@ void Viewer::draw_content()
     bool prev_term_visible{false};
     bool term_visible{false};
     int xi{0};
-    int xp{x() + left_margin};
+    int xp{content_x};
     int yp{y() + line_height};
     int initial_yp{yp};
     int ch_i = -1;
@@ -560,7 +567,7 @@ void Viewer::draw_content()
                 return;
         }
         yp += line_height;
-        xp = x() + left_margin;
+        xp = content_x;
         xi = 0;
 
         if (!offsets_dirty && yp + line_height - scroll_offset > h())
@@ -575,7 +582,7 @@ void Viewer::draw_content()
         }
 
         yp += line_height * 2;
-        xp = x() + left_margin;
+        xp = content_x;
         xi = 0;
         if (!offsets_dirty && yp + line_height - scroll_offset > h())
             return;
@@ -601,12 +608,12 @@ void Viewer::draw_content()
                     return;
             }
             yp += line_height;
-            xp = x() + left_margin;
+            xp = content_x;
             xi = 0;
         }
 
         yp += line_height * 3;
-        xp = x() + left_margin;
+        xp = content_x;
         xi = 0;
         if (!offsets_dirty && yp + line_height - scroll_offset > h())
             return;
@@ -614,6 +621,8 @@ void Viewer::draw_content()
     if (offsets_dirty)
     {
         max_scroll_offset = ((int) (yp - h()) / line_height) * line_height;
+        if (max_scroll_offset < 0)
+            max_scroll_offset = 0;
         // std::cout << "Viewer::draw_content() -> chapter offsets up to date!   -->   max_scroll_offset: "
         //           << max_scroll_offset << std::endl;
         offsets_dirty = false;
@@ -631,11 +640,10 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
     char const * s = matchmaker::at(term, &s_len);
     int s_width = fl_width(" ") * s_len;
 
-    if (xp + s_width > x() + w()
-            && xp != x() + left_margin
-    )
+    // !!! TODO FIXME support terms longer than content_width !!!
+    if (xp + s_width > content_x + content_width && xp != content_x)
     {
-        xp = x() + left_margin;
+        xp = content_x;
         yp += line_height;
         xi = 0;
     }
@@ -685,4 +693,37 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
         xp += s_width;
         term_visible = false;
     }
+}
+
+
+void Viewer::reposition()
+{
+    scrollbar_location.match(
+        {
+            {
+                ScrollbarLocation::Left::grab(),
+                [&]()
+                {
+                    scrollbar_label_x = x();
+                    scrollbar_x = scrollbar_label_x + scrollbar_label_width;
+                    content_x = scrollbar_x + scrollbar_width + content_margin;
+                    scroll_event_x_min = scrollbar_label_x;
+                    scroll_event_x_max = scrollbar_x + scrollbar_width;
+                },
+            },
+            {
+                ScrollbarLocation::Right::grab(),
+                [&]()
+                {
+                    scrollbar_label_x = x() + w() - scrollbar_label_width;
+                    scrollbar_x = scrollbar_label_x - scrollbar_width;
+                    content_x = x() + content_margin;
+                    scroll_event_x_min = scrollbar_x;
+                    scroll_event_x_max = scrollbar_label_x + scrollbar_label_width;
+                },
+            },
+        }
+    );
+
+    content_width = w() - scrollbar_width - scrollbar_label_width - (content_margin * 2);
 }

@@ -4,14 +4,22 @@
 
 #include <vector>
 
+#include <matchable/matchable.h>
+
+
+
+MATCHABLE(ScrollbarLocation, Left, Right)
+
 
 
 class LocationViewer;
 
+
+
 class Viewer : public Fl_Widget
 {
 public:
-    Viewer(int x, int y, int w, int h);
+    Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl);
     ~Viewer() noexcept;
     void draw() override;
     int handle(int event) override;
@@ -73,19 +81,27 @@ private:
 
     void draw_scroll();
     void draw_content();
+    void reposition();
 
 
     LocationViewer * location_viewer{nullptr};
     Fl_Boxtype scroller_boxtype{FL_BORDER_FRAME};
-    int scroller_top{0};
-    int scroller_height{50};
     // Fl_Color scroller_color{FL_FOREGROUND_COLOR};
     int max_scroll_offset{0};
     int lines_to_scroll_at_a_time{4};
-    int left_margin{39};
-    int scrollbar_width{27};
+    int scrollbar_label_width{45};
+    int scrollbar_width{17};
+    int scroller_top{0};
+    int scroller_height{scrollbar_width * 3};
+    int const content_margin{7};
+    int content_x{0};
+    int content_width{0};
+    int scrollbar_x{0};
+    int scrollbar_label_x{0};
+    int scroll_event_x_min{0};
+    int scroll_event_x_max{0};
     int line_height;
-
+    ScrollbarLocation::Type scrollbar_location{ScrollbarLocation::Left::grab()};
     bool dragging_scroller{false};
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
