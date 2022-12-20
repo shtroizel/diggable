@@ -10,7 +10,6 @@
 BookViewer::BookViewer(int x, int y, int w, int h)
     : Viewer{x, y, w, h, ScrollbarLocation::Left::grab()}
 {
-    offsets.reserve(matchmaker::chapter_count(0));
 }
 
 

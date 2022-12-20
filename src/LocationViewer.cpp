@@ -12,7 +12,6 @@
 LocationViewer::LocationViewer(int x, int y, int w, int h)
     : Viewer{x, y, w, h, ScrollbarLocation::Right::grab()}
 {
-    offsets.reserve(432);
 }
 
 

@@ -68,8 +68,10 @@ protected:
     static int const MAX_LINES{216};  // maxium visible lines
     static int const MAX_TERMS{210};  // maxium visible terms per line
     TermX term_x[MAX_LINES][MAX_TERMS];
-    bool offsets_dirty{true};
-    std::vector<int> offsets;
+
+    std::vector<int> scroll_offsets_by_chapter;
+    bool offsets_dirty{true}; // flag for rebuilding scroll_offsets_by_chapter (cached)
+
     int scroll_offset{0};
     int first_visible_chapter{0};
 
@@ -79,7 +81,8 @@ private:
     virtual void on_selected_term_changed(TermX const &) {}
 
 
-    void draw_scroll();
+    void draw_scrollbar();
+    void draw_scrollbar_labels();
     void draw_content();
     void reposition();
 
@@ -106,4 +109,7 @@ private:
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
     int index_of_space{-1};
+
+    // (y position, label string)
+    std::vector<std::pair<int, std::string>> scrollbar_labels;
 };

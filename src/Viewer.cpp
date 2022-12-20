@@ -3,6 +3,7 @@
 #include <iostream>
 #include <functional>
 #include <vector>
+#include <queue>
 
 #include <FL/Fl.H>
 #include <FL/fl_draw.H>
@@ -56,7 +57,8 @@ void Viewer::draw()
     //             foreground_color());
 
     draw_content();
-    draw_scroll();
+    draw_scrollbar();
+    draw_scrollbar_labels();
 
     if (hover_box_visible)
     {
@@ -70,18 +72,9 @@ void Viewer::draw()
 }
 
 
-void Viewer::draw_scroll()
+void Viewer::draw_scrollbar()
 {
-    // clear label
-    fl_rectf(
-        scrollbar_label_x,
-        y(),
-        scrollbar_label_width,
-        h(),
-        Settings::Instance::grab().as_background_color()
-    );
-
-    // clear bar
+    // clear
     fl_rectf(scrollbar_x, y(), scrollbar_width, h(), Settings::Instance::grab().as_background_color());
 
     // only draw scrollbar when needed
@@ -115,6 +108,106 @@ void Viewer::draw_scroll()
                 scrollbar_width,
                 scroller_height,
                 Settings::Instance::grab().as_scroller_color());
+}
+
+
+void Viewer::draw_scrollbar_labels()
+{
+    // clear label
+    fl_rectf(
+        scrollbar_label_x,
+        y(),
+        scrollbar_label_width,
+        h(),
+        Settings::Instance::grab().as_background_color()
+    );
+
+    fl_color(Settings::Instance::grab().as_foreground_color());
+    fl_font(MONO_FONT, FONT_SIZE);
+
+    if (scrollbar_labels.size() == 0)
+        return;
+
+    int j = 5; // justification
+    int x_start = scrollbar_label_x;
+    int use_j = 1;
+    if (scrollbar_location == ScrollbarLocation::Right::grab())
+    {
+        use_j = 0;
+        x_start = scrollbar_label_x + 5;
+    }
+
+    int labels_printed = 0;
+    int const min_gap = line_height * 2;
+    int max_labels_to_print = 17;
+    if (h() / min_gap < max_labels_to_print)
+        max_labels_to_print = h() / min_gap;
+
+    if (scrollbar_labels.size() < (size_t) max_labels_to_print)
+    {
+        int cur_gap = min_gap;
+        int prev_pos = scrollbar_labels[0].first;
+
+        for (size_t i = 0; i < scrollbar_labels.size(); ++i)
+        {
+            cur_gap += scrollbar_labels[i].first - prev_pos;
+            prev_pos = scrollbar_labels[i].first;
+
+            if (cur_gap < min_gap)
+                continue;
+
+            fl_draw(
+                scrollbar_labels[i].second.c_str(),
+                x_start + (j - scrollbar_labels[i].second.size()) * fl_width(" ") * use_j,
+                scrollbar_labels[i].first + line_height
+            );
+
+            cur_gap = 0;
+        }
+
+        return;
+    }
+
+    // draw first
+    fl_draw(
+        scrollbar_labels[0].second.c_str(),
+        x_start + (j - scrollbar_labels[0].second.size()) * fl_width(" ") * use_j,
+        scrollbar_labels[0].first + line_height
+    );
+    ++labels_printed;
+
+    // draw last
+    fl_draw(
+        scrollbar_labels[scrollbar_labels.size() - 1].second.c_str(),
+        x_start + (j - scrollbar_labels[scrollbar_labels.size() - 1].second.size()) * fl_width(" ") * use_j,
+        scrollbar_labels[scrollbar_labels.size() - 1].first + line_height
+    );
+    ++labels_printed;
+
+    // draw "middles"
+    std::queue<std::pair<int, int>> q;
+    q.push({0, scrollbar_labels.size() - 1});
+    while (!q.empty() && labels_printed < max_labels_to_print)
+    {
+        int begin = q.front().first;
+        int end = q.front().second;
+        q.pop();
+
+        int mid = begin + (end - begin) / 2;
+
+        fl_draw(
+            scrollbar_labels[mid].second.c_str(),
+            x_start + (j - scrollbar_labels[mid].second.size()) * fl_width(" ") * use_j,
+            scrollbar_labels[mid].first + line_height
+        );
+
+        ++labels_printed;
+        if (labels_printed >= max_labels_to_print)
+            break;
+
+        q.push({begin, mid});
+        q.push({mid, end});
+    }
 }
 
 
@@ -484,14 +577,14 @@ void Viewer::leave()
 
 void Viewer::scroll_to_offset(int offset)
 {
-    if (offset < 0 || offset >= (int) offsets.size())
+    if (offset < 0 || offset >= (int) scroll_offsets_by_chapter.size())
     {
         std::cout << "Viewer::scroll_to_offset(" << std::to_string(offset) << ") --> out of bounds (size: "
-                  << std::to_string(offsets.size()) << ")" << std::endl;
+                  << std::to_string(scroll_offsets_by_chapter.size()) << ")" << std::endl;
         return;
     }
 
-    scroll_offset = offsets[offset];
+    scroll_offset = scroll_offsets_by_chapter[offset];
     redraw();
 }
 
@@ -499,7 +592,12 @@ void Viewer::scroll_to_offset(int offset)
 void Viewer::draw_content()
 {
     if (offsets_dirty)
-        offsets.clear();
+    {
+        scroll_offsets_by_chapter.clear();
+        scroll_offsets_by_chapter.reserve(chapters().size());
+        scrollbar_labels.clear();
+        scrollbar_labels.reserve(chapters().size());
+    }
 
     // clear
     fl_rectf(
@@ -532,14 +630,21 @@ void Viewer::draw_content()
 
         if (offsets_dirty)
         {
-            offsets.push_back(yp - initial_yp);
+            scroll_offsets_by_chapter.push_back(yp - initial_yp);
+
+
+            std::string label = std::to_string(ch_i + 1);
+
+            // initially store current yp
+            // once final yp is known (end of function),
+            // the y positions can be calculated from the current yp
+            scrollbar_labels.push_back({yp, label});
         }
-        else if (start_ch_ii == -1)
+        else if (start_ch_ii == -1) // skip ahead to just before visible (makes drawing much faster)
         {
-            // skip ahead to just before visible
-            int i = (int) offsets.size();
+            int i = (int) scroll_offsets_by_chapter.size();
             for (; i-- > 0;)
-                if (offsets[i] - scroll_offset < 0)
+                if (scroll_offsets_by_chapter[i] - scroll_offset < 0)
                     break;
 
             start_ch_ii = i;
@@ -547,7 +652,7 @@ void Viewer::draw_content()
                 start_ch_ii = 0;
 
             ch_ii = start_ch_ii;
-            yp = offsets[ch_ii];
+            yp = scroll_offsets_by_chapter[ch_ii];
             yp += line_height;
             ch_i = ch[ch_ii];
         }
@@ -626,6 +731,16 @@ void Viewer::draw_content()
         // std::cout << "Viewer::draw_content() -> chapter offsets up to date!   -->   max_scroll_offset: "
         //           << max_scroll_offset << std::endl;
         offsets_dirty = false;
+
+        if (max_scroll_offset > 0)
+        {
+            // at this point scrollbar_labels still have offsets, so use final yp to calculate
+            // the y positions
+            for (size_t i = 0; i < scrollbar_labels.size(); ++i)
+                scrollbar_labels[i].first =
+                        (int) ((scrollbar_labels[i].first / (float) (yp)) * (h() - line_height - fl_size() / 2));
+        }
+
         draw_content();
     }
 }
