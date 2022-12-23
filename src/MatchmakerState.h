@@ -4,12 +4,12 @@
 
 
 
-MATCHABLE(MatchmakerState, Loaded, Unloaded, Linked)
+MATCHABLE(LibraryState, Loaded, Unloaded, Linked)
 
-PROPERTYx1_MATCHABLE(MatchmakerState::Type, state, MatchmakerStateInstance, Instance)
+PROPERTYx1_MATCHABLE(LibraryState::Type, state, MatchmakerState, Instance)
 
 #ifdef MM_DYNAMIC_LOADING
-MATCHABLE_VARIANT_PROPERTY_VALUE(MatchmakerStateInstance, Instance, state, MatchmakerState::Unloaded::grab())
+MATCHABLE_VARIANT_PROPERTY_VALUE(MatchmakerState, Instance, state, LibraryState::Unloaded::grab())
 #else
-MATCHABLE_VARIANT_PROPERTY_VALUE(MatchmakerStateInstance, Instance, state, MatchmakerState::Linked::grab())
+MATCHABLE_VARIANT_PROPERTY_VALUE(MatchmakerState, Instance, state, LibraryState::Linked::grab())
 #endif

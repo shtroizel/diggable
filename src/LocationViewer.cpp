@@ -1,11 +1,13 @@
-#include "LocationViewer.h"
+#include <LocationViewer.h>
 
+#include <iostream>
 #include <vector>
 
-#include "matchmaker.h"
+#include <matchmaker.h>
 
-#include "BookViewer.h"
-#include "Settings.h"
+#include <BookViewer.h>
+#include <TermViewer.h>
+#include <Settings.h>
 
 
 
@@ -15,9 +17,11 @@ LocationViewer::LocationViewer(int x, int y, int w, int h)
 }
 
 
+
 LocationViewer::~LocationViewer() noexcept
 {
 }
+
 
 
 void LocationViewer::locate()
@@ -55,10 +59,12 @@ void LocationViewer::locate()
 }
 
 
+
 void LocationViewer::set_book_viewer(BookViewer* bv)
 {
     book_viewer = bv;
 }
+
 
 
 std::vector<int> const & LocationViewer::chapters()
@@ -67,9 +73,13 @@ std::vector<int> const & LocationViewer::chapters()
 }
 
 
+
 void LocationViewer::on_selected_term_changed(TermX const & term)
 {
     locate();
     if (nullptr != book_viewer)
         book_viewer->scroll_to_offset(term.chapter);
+
+    if (nullptr != term_viewer)
+        term_viewer->refresh_completion_stack();
 }

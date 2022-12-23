@@ -1,4 +1,4 @@
-#include "Viewer.h"
+#include <Viewer.h>
 
 #include <iostream>
 #include <functional>
@@ -10,14 +10,13 @@
 #include <FL/Fl_Box.H>
 #include <FL/Enumerations.H>
 
-#include "matchmaker.h"
-#include "Settings.h"
+#include <matchmaker.h>
+#include <Settings.h>
+#include <TermViewer.h>
 
 
 
 int const MONO_FONT{4};
-int const FONT_SIZE{14};
-float const LINE_HEIGHT_FACTOR{1.26};
 float const HOVER_BOX_MARGIN_SIZE{2};
 
 
@@ -26,8 +25,9 @@ Viewer::Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
     : Fl_Widget{x, y, w, h, nullptr}
     , scrollbar_location{sl}
 {
-    fl_font(MONO_FONT, FONT_SIZE);
-    line_height = (int) (fl_size() * LINE_HEIGHT_FACTOR);
+    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
+    Settings::Instance::grab().set_line_height(
+            (int) (fl_size() * Settings::Instance::grab().as_line_height_factor()));
 
     bool ok;
     index_of_space = matchmaker::lookup(" ", &ok);
@@ -42,9 +42,11 @@ Viewer::Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
 }
 
 
+
 Viewer::~Viewer() noexcept
 {
 }
+
 
 
 void Viewer::draw()
@@ -70,6 +72,7 @@ void Viewer::draw()
                     Settings::Instance::grab().as_hover_color());
     }
 }
+
 
 
 void Viewer::draw_scrollbar()
@@ -111,6 +114,7 @@ void Viewer::draw_scrollbar()
 }
 
 
+
 void Viewer::draw_scrollbar_labels()
 {
     // clear label
@@ -123,7 +127,7 @@ void Viewer::draw_scrollbar_labels()
     );
 
     fl_color(Settings::Instance::grab().as_foreground_color());
-    fl_font(MONO_FONT, FONT_SIZE);
+    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size() - 3);
 
     if (scrollbar_labels.size() == 0)
         return;
@@ -138,6 +142,7 @@ void Viewer::draw_scrollbar_labels()
     }
 
     int labels_printed = 0;
+    int const line_height = Settings::Instance::grab().as_line_height();
     int const min_gap = line_height * 2;
     int max_labels_to_print = 17;
     if (h() / min_gap < max_labels_to_print)
@@ -231,6 +236,8 @@ int Viewer::handle(int event)
             return 0;
         case FL_ENTER:
             // std::cout << "Viewer::handle() --> FL_ENTER event!" << std::endl;
+            if (nullptr != term_viewer)
+                term_viewer->leave();
             return 1;
         case FL_PUSH:
             {
@@ -246,7 +253,7 @@ int Viewer::handle(int event)
                     return 1;
                 }
 
-                int const ty = (Fl::event_y() - y()) / line_height;
+                int const ty = (Fl::event_y() - y()) / Settings::Instance::grab().as_line_height();
                 int term{-1};
                 for (int tx = 0; tx < MAX_TERMS; ++tx)
                 {
@@ -307,7 +314,7 @@ int Viewer::handle(int event)
             {
                 int const ex = Fl::event_x();
                 // int const ey = Fl::event_y();
-                int const ty = (Fl::event_y() - y()) / line_height;
+                int const ty = (Fl::event_y() - y()) / Settings::Instance::grab().as_line_height();
                 int start{-1};
                 int end{-1};
                 int top{term_x[ty][0].top};
@@ -318,7 +325,8 @@ int Viewer::handle(int event)
                 {
                     TermX & t = term_x[ty][tx];
 
-                    if (ex > t.start && ex < t.end)
+                    if (ex > t.start && ex < t.end &&
+                            (t.end - t.start > fl_width(" ") * 1.5 || t.term == index_of_space))
                     {
                         start = t.start;
                         end = t.end;
@@ -430,7 +438,7 @@ int Viewer::handle(int event)
 
                                     if (top > term_x[tyi][txi].top)
                                     {
-                                        // extra_height += (ty - tyi) * line_height;
+                                        // extra_height += (ty - tyi) * Settings::Instance::grab().as_line_height();
                                         extra_height += (top - term_x[tyi][txi].top);
                                         top = term_x[tyi][txi].top;
                                     }
@@ -490,6 +498,9 @@ int Viewer::handle(int event)
                             }
                         }
 
+                        if (end > content_x + content_width - HOVER_BOX_MARGIN_SIZE)
+                            end = content_x + content_width - HOVER_BOX_MARGIN_SIZE;
+
                         hover_box[0] = start;
                         hover_box[1] = top;
                         hover_box[2] = end - start;
@@ -525,7 +536,7 @@ int Viewer::handle(int event)
                 scroll_offset = 0;
                 return 1;
             }
-            scroll_offset += Fl::event_dy() * line_height * lines_to_scroll_at_a_time;
+            scroll_offset += Fl::event_dy() * Settings::Instance::grab().as_line_height() * lines_to_scroll_at_a_time;
             if (scroll_offset < 0)
                 scroll_offset = 0;
             else if (scroll_offset > max_scroll_offset)
@@ -560,6 +571,7 @@ void Viewer::scroll_to_y(int ey)
     }
     float dmax = h();
     float loc = ey / dmax;
+    int const line_height = Settings::Instance::grab().as_line_height();
     scroll_offset = (((int) (loc * max_scroll_offset)) / line_height) * line_height;
     if (scroll_offset > max_scroll_offset)
         scroll_offset = max_scroll_offset;
@@ -568,11 +580,20 @@ void Viewer::scroll_to_y(int ey)
 }
 
 
+
 void Viewer::leave()
 {
     hover_box_visible = false;
     redraw();
 }
+
+
+
+void Viewer::set_term_viewer(TermViewer * l)
+{
+    term_viewer = l;
+}
+
 
 
 void Viewer::scroll_to_offset(int offset)
@@ -587,6 +608,7 @@ void Viewer::scroll_to_offset(int offset)
     scroll_offset = scroll_offsets_by_chapter[offset];
     redraw();
 }
+
 
 
 void Viewer::draw_content()
@@ -609,7 +631,7 @@ void Viewer::draw_content()
     );
 
     fl_color(Settings::Instance::grab().as_foreground_color());
-    fl_font(MONO_FONT, FONT_SIZE);
+    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
 
     for (int l = 0; l < MAX_LINES; ++l)
         for (int t = 0; t < MAX_TERMS; ++t)
@@ -619,6 +641,7 @@ void Viewer::draw_content()
     bool term_visible{false};
     int xi{0};
     int xp{content_x};
+    int const line_height = Settings::Instance::grab().as_line_height();
     int yp{y() + line_height};
     int initial_yp{yp};
     int ch_i = -1;
@@ -746,6 +769,7 @@ void Viewer::draw_content()
 }
 
 
+
 void Viewer::append_term(int term, int book, int chapter, int paragraph,
                              int const * ancestors, int ancestor_count,
                              int index_within_first_ancestor,
@@ -754,13 +778,20 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
     int s_len{0};
     char const * s = matchmaker::at(term, &s_len);
     int s_width = fl_width(" ") * s_len;
+    int const line_height = Settings::Instance::grab().as_line_height();
 
-    // !!! TODO FIXME support terms longer than content_width !!!
-    if (xp + s_width > content_x + content_width && xp != content_x)
+    if (xp + s_width > content_x + content_width)
     {
-        xp = content_x;
-        yp += line_height;
-        xi = 0;
+        if (xp == content_x)
+        {
+            s_len = (int) content_width / fl_width("Q");
+        }
+        else
+        {
+            xp = content_x;
+            yp += line_height;
+            xi = 0;
+        }
     }
 
     if (yp >= scroll_offset)
@@ -773,7 +804,7 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
                 draw_color = Settings::Instance::grab().as_term_colors_vect()[ancestors[i]];
 
             fl_color(draw_color);
-            fl_draw(s, xp, yp - line_height - scroll_offset + fl_size());
+            fl_draw(s, s_len, xp, yp - line_height - scroll_offset + fl_size());
             fl_color(Settings::Instance::grab().as_foreground_color());
         }
         int term_index = (yp - line_height - scroll_offset) / line_height;
@@ -809,6 +840,7 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
         term_visible = false;
     }
 }
+
 
 
 void Viewer::reposition()

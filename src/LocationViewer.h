@@ -7,6 +7,7 @@
 
 
 class BookViewer;
+class TermViewer;
 
 class LocationViewer : public Viewer
 {

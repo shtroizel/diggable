@@ -13,6 +13,7 @@ MATCHABLE(ScrollbarLocation, Left, Right)
 
 
 class LocationViewer;
+class TermViewer;
 
 
 
@@ -26,6 +27,7 @@ public:
     void scroll_to_offset(int offset);
     void scroll_to_y(int ey);
     void leave();
+    void set_term_viewer(TermViewer * l);
 
 
 protected:
@@ -74,6 +76,7 @@ protected:
 
     int scroll_offset{0};
     int first_visible_chapter{0};
+    TermViewer * term_viewer{nullptr};
 
 
 private:
@@ -103,7 +106,6 @@ private:
     int scrollbar_label_x{0};
     int scroll_event_x_min{0};
     int scroll_event_x_max{0};
-    int line_height;
     ScrollbarLocation::Type scrollbar_location{ScrollbarLocation::Left::grab()};
     bool dragging_scroller{false};
     int hover_box[4] = { -1, -1, -1, -1 };

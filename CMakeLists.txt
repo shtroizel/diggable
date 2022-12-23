@@ -43,9 +43,9 @@ set(
     src/BookViewer.h
     src/LocationViewer.cpp
     src/LocationViewer.h
-    # src/TermViewer.cpp
-    # src/TermViewer.h
-    # src/CompletionStack.cpp
+    src/TermViewer.cpp
+    src/TermViewer.h
+    src/CompletionStack.cpp
     src/MainWindow.cpp
     src/MainWindow.h
     src/matchmaker.cpp

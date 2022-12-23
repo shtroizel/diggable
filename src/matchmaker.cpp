@@ -125,11 +125,11 @@ namespace matchmaker
 
 #ifdef MM_DYNAMIC_LOADING
         if (ok)
-            MatchmakerStateInstance::Instance::grab().set_state(MatchmakerState::Loaded::grab());
+            MatchmakerState::Instance::grab().set_state(LibraryState::Loaded::grab());
         else
-            MatchmakerStateInstance::Instance::grab().set_state(MatchmakerState::Unloaded::grab());
+            MatchmakerState::Instance::grab().set_state(LibraryState::Unloaded::grab());
 #else
-        MatchmakerStateInstance::Instance::grab().set_state(MatchmakerState::Linked::grab());
+        MatchmakerState::Instance::grab().set_state(LibraryState::Linked::grab());
 #endif
 
         return ret;
