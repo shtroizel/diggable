@@ -198,7 +198,7 @@ int TermViewer::handle(int event)
                 // int const ey = Fl::event_y();
                 int ci = (Fl::event_y() - (y() + search_bar_height + margins)) / line_height;
 
-                std::cout << "cy: " << ci << "       c.size(): " << c.size() << std::endl;
+                // std::cout << "cy: " << ci << "       c.size(): " << c.size() << std::endl;
 
                 if (
                     cs.count() > 1 &&
@@ -230,10 +230,10 @@ int TermViewer::handle(int event)
                         hover_box[1] = hover_box_y * line_height + search_bar_height + margins;
                         hover_box[2] = w() - margins * 3;
                         hover_box[3] = hover_box_height;
-                        std::cout << "    hover_box:";
-                        for (int i = 0; i < 4; ++i)
-                            std::cout << " " << hover_box[i];
-                        std::cout << std::endl;
+                        // std::cout << "    hover_box:";
+                        // for (int i = 0; i < 4; ++i)
+                        //     std::cout << " " << hover_box[i];
+                        // std::cout << std::endl;
 
                         hover_box_visible = true;
                     }
@@ -354,7 +354,7 @@ void TermViewer::draw_completion()
 
         int display_count = (int) words.size() - display_start;
         int const available_width = (int) ((w() - margins * 3) / fl_width("Q"));
-        int const indent_char_count = 2;
+        int const indent_char_count = 3;
         int const indent_x = fl_width("q") * indent_char_count;
         int const line_height = Settings::Instance::grab().as_line_height();
         int available_lines =
@@ -371,6 +371,7 @@ void TermViewer::draw_completion()
 
             int total_chars_written{0};
             int cur_chars_to_write{0};
+            int cur_chars_to_write_saved{0};
             while (total_chars_written < word_len)
             {
                 cur_chars_to_write = word_len - total_chars_written;
@@ -378,7 +379,19 @@ void TermViewer::draw_completion()
                 if (total_chars_written == 0)
                 {
                     if (cur_chars_to_write > available_width)
+                    {
                         cur_chars_to_write = available_width;
+                        cur_chars_to_write_saved = cur_chars_to_write;
+                        while (word[cur_chars_to_write] != ' ' && cur_chars_to_write > 1)
+                            --cur_chars_to_write;
+
+                        // if no space found then fall back to hard cut,
+                        // otherwise allow the new line to count as a space
+                        if (cur_chars_to_write == 1)
+                            cur_chars_to_write = cur_chars_to_write_saved;
+                        else
+                            ++cur_chars_to_write;
+                    }
 
                     fl_draw(word, cur_chars_to_write, xp, yp);
                     display_locations[i].first = i;
@@ -387,7 +400,19 @@ void TermViewer::draw_completion()
                 else
                 {
                     if (cur_chars_to_write > available_width - indent_char_count)
+                    {
                         cur_chars_to_write = available_width - indent_char_count;
+                        int cur_chars_to_write_saved = cur_chars_to_write;
+                        while (word[cur_chars_to_write] != ' ' && cur_chars_to_write > 1)
+                            --cur_chars_to_write;
+
+                        // if no space then fall back to hard cut,
+                        // otherwise allow the new line to count as a space
+                        if (cur_chars_to_write == 1)
+                            cur_chars_to_write = cur_chars_to_write_saved;
+                        else
+                            ++cur_chars_to_write;
+                    }
 
                     fl_draw(word, cur_chars_to_write, xp + indent_x, yp);
 
@@ -400,7 +425,7 @@ void TermViewer::draw_completion()
                     int const x1 = x0;
                     int const y1 = yp - line_height * 2 / 7;
 
-                    int const x2 = xp + indent_x - indent_x / 5;
+                    int const x2 = xp + indent_x - indent_x * 2 / 5;
                     int const y2 = y1;
                     fl_line(x0, y0, x1, y1, x2, y2);
                     fl_color(prev_color);

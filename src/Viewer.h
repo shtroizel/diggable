@@ -52,6 +52,7 @@ protected:
             start = -1;
             end = -1;
             top = -1;
+            height = -1;
             book = -1;
             chapter = -1;
             paragraph = -1;
@@ -63,6 +64,7 @@ protected:
         int start;
         int end;
         int top;
+        int height;
         int book;
         int chapter;
         int paragraph;

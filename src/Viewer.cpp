@@ -320,6 +320,7 @@ int Viewer::handle(int event)
                 int top{term_x[ty][0].top};
                 int tyi{-1};
                 int txi{-1};
+                int height{0};
                 int extra_height{0};
                 for (int tx = 0; tx < MAX_TERMS; ++tx)
                 {
@@ -331,10 +332,13 @@ int Viewer::handle(int event)
                         start = t.start;
                         end = t.end;
                         top = t.top;
+                        height = t.height;
 
-
-                        // std::cout << "Viewer::handle() --> hovered on term " << std::to_string(term_x[ty][tx].term) << " ---> "
-                        //           << matchmaker::at(term_x[ty][tx].term, nullptr) << std::endl;
+                        // std::cout << "Viewer::handle() --> hovered on term "
+                        //           << std::to_string(t.term) << " ---> "
+                        //           << matchmaker::at(t.term, nullptr)
+                        //           << " ---> height: " << height
+                        //           << std::endl;
 
 
                         // handle parent selection
@@ -504,7 +508,7 @@ int Viewer::handle(int event)
                         hover_box[0] = start;
                         hover_box[1] = top;
                         hover_box[2] = end - start;
-                        hover_box[3] = fl_height() + extra_height;
+                        hover_box[3] = height + extra_height;
 
                         hover_box_visible = true;
 
@@ -780,11 +784,163 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
     int s_width = fl_width(" ") * s_len;
     int const line_height = Settings::Instance::grab().as_line_height();
 
+    // apply color from term or from ancestors if term's color is the foreground_color
+    Fl_Color draw_color = Settings::Instance::grab().as_term_colors_vect()[term];
+    for (int i = 0; i < ancestor_count && draw_color == Settings::Instance::grab().as_foreground_color(); ++i)
+        draw_color = Settings::Instance::grab().as_term_colors_vect()[ancestors[i]];
+
     if (xp + s_width > content_x + content_width)
     {
         if (xp == content_x)
         {
-            s_len = (int) content_width / fl_width("Q");
+            int const available_width = (int) (content_width) / fl_width("Q");
+            int const indent_char_count = 3;
+            int const indent_x = fl_width("q") * indent_char_count;
+            int const line_height = Settings::Instance::grab().as_line_height();
+            int total_chars_written{0};
+            int cur_chars_to_write{0};
+            int cur_chars_to_write_saved{0};
+            int top{0};
+            int end{0};
+            int initial_yi = 0;
+            int wrapped_line_count = 0;
+            while (total_chars_written < s_len)
+            {
+                ++wrapped_line_count;
+                xp = content_x;
+                xi = 0;
+
+                cur_chars_to_write = s_len - total_chars_written;
+                int yi = (yp - line_height - scroll_offset) / line_height;
+                if (yi < 0)
+                    yi = 0;
+
+                if (total_chars_written == 0)
+                {
+                    initial_yi = yi;
+
+                    if (cur_chars_to_write > available_width)
+                    {
+                        cur_chars_to_write = available_width;
+                        cur_chars_to_write_saved = cur_chars_to_write;
+                        while (s[cur_chars_to_write] != ' ' && cur_chars_to_write > 1)
+                            --cur_chars_to_write;
+
+                        // if no space then fall back to hard cut,
+                        // otherwise allow the new line to count as a space
+                        if (cur_chars_to_write == 1)
+                            cur_chars_to_write = cur_chars_to_write_saved;
+                        else
+                            ++cur_chars_to_write;
+                    }
+
+                    if (!offsets_dirty)
+                    {
+                        fl_color(draw_color);
+                        fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset + fl_size());
+                    }
+
+                    if (yi < MAX_LINES)
+                    {
+                        term_x[yi][xi].term = term;
+                        term_x[yi][xi].ancestors = ancestors;
+                        term_x[yi][xi].ancestor_count = ancestor_count;
+                        term_x[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+                        term_x[yi][xi].start = xp;
+                        top = yp - scroll_offset - line_height;
+                        term_x[yi][xi].top = top;
+                        term_x[yi][xi].book = book;
+                        term_x[yi][xi].chapter = chapter;
+                        term_x[yi][xi].paragraph = paragraph;
+
+                        term_visible = true;
+                    }
+                    else
+                    {
+                        term_visible = false;
+                    }
+                    xp += cur_chars_to_write * fl_width("Q");
+                    if (yi < MAX_LINES)
+                    {
+                        end = xp;
+                        term_x[yi][xi].end = xp;
+                    }
+                    ++xi;
+
+                }
+                else
+                {
+                    if (cur_chars_to_write > available_width - indent_char_count)
+                    {
+                        cur_chars_to_write = available_width - indent_char_count;
+                        int cur_chars_to_write_saved = cur_chars_to_write;
+                        while (s[cur_chars_to_write] != ' ' && cur_chars_to_write > 1)
+                            --cur_chars_to_write;
+
+                        // if no space then fall back to hard cut,
+                        // otherwise allow the new line to count as a space
+                        if (cur_chars_to_write == 1)
+                            cur_chars_to_write = cur_chars_to_write_saved;
+                        else
+                            ++cur_chars_to_write;
+                    }
+
+                    if (!offsets_dirty)
+                    {
+                        fl_color(draw_color);
+                        int typ = yp - line_height - scroll_offset + fl_size();
+                        fl_draw(s, cur_chars_to_write, xp + indent_x, typ);
+
+                        int const x0 = xp + indent_x / 5;
+                        int const y0 = typ - line_height * 4 / 7;
+
+                        int const x1 = x0;
+                        int const y1 = typ - line_height * 2 / 7;
+
+                        int const x2 = xp + indent_x - indent_x * 2 / 5;
+                        int const y2 = y1;
+
+
+                        fl_color(Settings::Instance::grab().as_wrap_indicator_color());
+                        fl_line(x0, y0, x1, y1, x2, y2);
+                    }
+
+
+                    if (yi < MAX_LINES)
+                    {
+                        term_x[yi][xi].term = term;
+                        term_x[yi][xi].ancestors = ancestors;
+                        term_x[yi][xi].ancestor_count = ancestor_count;
+                        term_x[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+                        term_x[yi][xi].start = xp;
+                        term_x[yi][xi].end = end;
+                        term_x[yi][xi].top = top;
+                        term_x[yi][xi].book = book;
+                        term_x[yi][xi].chapter = chapter;
+                        term_x[yi][xi].paragraph = paragraph;
+
+                        term_visible = true;
+                    }
+                    else
+                    {
+                        term_visible = false;
+                    }
+                    xp += cur_chars_to_write * fl_width("Q");
+                    ++xi;
+                }
+
+                s += cur_chars_to_write;
+                total_chars_written += cur_chars_to_write;
+                yp += line_height;
+            }
+
+            yp -= line_height;
+
+            for (int i = 0; i < wrapped_line_count; ++i)
+                if (initial_yi + i < MAX_LINES)
+                    term_x[initial_yi + i][0].height = wrapped_line_count * line_height;
+
+            return;
         }
         else
         {
@@ -798,30 +954,28 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
     {
         if (!offsets_dirty)
         {
-            // apply color from term or from ancestors if term's color is the foreground_color
-            Fl_Color draw_color = Settings::Instance::grab().as_term_colors_vect()[term];
-            for (int i = 0; i < ancestor_count && draw_color == Settings::Instance::grab().as_foreground_color(); ++i)
-                draw_color = Settings::Instance::grab().as_term_colors_vect()[ancestors[i]];
-
             fl_color(draw_color);
+            // TODO see https://www.fltk.org/doc-1.3/drawing.html#ssect_Text
+            // "To align to the bottom, subtract fl_descent() from y. To align to the top, subtract fl_descent() and add fl_height()"
             fl_draw(s, s_len, xp, yp - line_height - scroll_offset + fl_size());
-            fl_color(Settings::Instance::grab().as_foreground_color());
+            // fl_color(Settings::Instance::grab().as_foreground_color());
         }
-        int term_index = (yp - line_height - scroll_offset) / line_height;
-        if (term_index < 0)
-            term_index = 0;
+        int yi = (yp - line_height - scroll_offset) / line_height;
+        if (yi < 0)
+            yi = 0;
 
-        if (term_index < MAX_LINES)
+        if (yi < MAX_LINES)
         {
-            term_x[term_index][xi].term = term;
-            term_x[term_index][xi].ancestors = ancestors;
-            term_x[term_index][xi].ancestor_count = ancestor_count;
-            term_x[term_index][xi].index_within_first_ancestor = index_within_first_ancestor;
-            term_x[term_index][xi].start = xp;
-            term_x[term_index][xi].top = yp - scroll_offset - line_height;
-            term_x[term_index][xi].book = book;
-            term_x[term_index][xi].chapter = chapter;
-            term_x[term_index][xi].paragraph = paragraph;
+            term_x[yi][xi].term = term;
+            term_x[yi][xi].ancestors = ancestors;
+            term_x[yi][xi].ancestor_count = ancestor_count;
+            term_x[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+            term_x[yi][xi].start = xp;
+            term_x[yi][xi].top = yp - scroll_offset - line_height;
+            term_x[yi][xi].height = line_height;
+            term_x[yi][xi].book = book;
+            term_x[yi][xi].chapter = chapter;
+            term_x[yi][xi].paragraph = paragraph;
 
             term_visible = true;
         }
@@ -830,8 +984,8 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
             term_visible = false;
         }
         xp += s_width;
-        if (term_index < MAX_LINES)
-            term_x[term_index][xi].end = xp;
+        if (yi < MAX_LINES)
+            term_x[yi][xi].end = xp;
         ++xi;
     }
     else
