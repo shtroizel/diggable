@@ -21,7 +21,8 @@ int main(int argc, char **argv)
     }
 
     Fl::set_fonts("-*");
-    MainWindow * window = new MainWindow(1056, 555, "diggable");
+    Fl::visual(FL_RGB);
+    MainWindow * window = new MainWindow(1111, 777, "diggable");
     window->show(argc, argv);
     window->make_current();
     return Fl::run();

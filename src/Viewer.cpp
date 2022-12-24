@@ -51,13 +51,6 @@ Viewer::~Viewer() noexcept
 
 void Viewer::draw()
 {
-    // fl_draw_box(FL_BORDER_FRAME,
-    //             x() + 1,
-    //             y() + 1,
-    //             w() - 2,
-    //             h() - 2,
-    //             foreground_color());
-
     draw_content();
     draw_scrollbar();
     draw_scrollbar_labels();
@@ -257,31 +250,32 @@ int Viewer::handle(int event)
                 int term{-1};
                 for (int tx = 0; tx < MAX_TERMS; ++tx)
                 {
-                    TermX & t = term_x[ty][tx];
+                    Cell & t = cells[ty][tx];
                     term = t.term;
 
                     if (ex > t.start && ex < t.end)
                     {
-
                         // activate parent term instead when over space between terms
                         if (t.term == index_of_space && t.ancestor_count > 0)
                         {
-                            // only offer phrases that appear at least twice
-                            int const * book_components = nullptr;
-                            int const * chapter_components = nullptr;
-                            int const * paragraph_components = nullptr;
-                            int const * word_components = nullptr;
-                            int location_count = 0;
-                            matchmaker::locations(t.ancestors[0],
-                                                  &book_components,
-                                                  &chapter_components,
-                                                  &paragraph_components,
-                                                  &word_components,
-                                                  &location_count);
-                            if (location_count > 1)
-                                term = t.ancestors[0];
-                            else
-                                return 1;
+                            // // but only offer phrases that appear at least twice,
+                            // // so get the location_count
+                            // int const * book_components = nullptr;
+                            // int const * chapter_components = nullptr;
+                            // int const * paragraph_components = nullptr;
+                            // int const * word_components = nullptr;
+                            // int location_count = 0;
+                            // matchmaker::locations(t.ancestors[0],
+                            //                       &book_components,
+                            //                       &chapter_components,
+                            //                       &paragraph_components,
+                            //                       &word_components,
+                            //                       &location_count);
+                            // if (location_count > 1)
+                            //     term = t.ancestors[0];
+                            // else
+                            //     return 1;
+                            term = t.ancestors[0];
                         }
 
                         std::vector<Fl_Color> & term_colors =
@@ -301,7 +295,7 @@ int Viewer::handle(int event)
                         // update selected term
                         Settings::Instance::grab().set_selected_term(term);
 
-                        on_selected_term_changed(term_x[ty][tx]);
+                        on_selected_term_changed(cells[ty][tx]);
 
                         redraw();
                         break;
@@ -317,14 +311,14 @@ int Viewer::handle(int event)
                 int const ty = (Fl::event_y() - y()) / Settings::Instance::grab().as_line_height();
                 int start{-1};
                 int end{-1};
-                int top{term_x[ty][0].top};
+                int top{cells[ty][0].top};
                 int tyi{-1};
                 int txi{-1};
                 int height{0};
                 int extra_height{0};
                 for (int tx = 0; tx < MAX_TERMS; ++tx)
                 {
-                    TermX & t = term_x[ty][tx];
+                    Cell & t = cells[ty][tx];
 
                     if (ex > t.start && ex < t.end &&
                             (t.end - t.start > fl_width(" ") * 1.5 || t.term == index_of_space))
@@ -379,10 +373,10 @@ int Viewer::handle(int event)
 
                                         py = ty - 1;
                                         px = MAX_TERMS - 1;
-                                        while (px > 0 && term_x[py][px].term == -1)
+                                        while (px > 0 && cells[py][px].term == -1)
                                             --px;
 
-                                        return term_x[py][px].term != -1;
+                                        return cells[py][px].term != -1;
                                     };
 
                             auto next_term =
@@ -390,7 +384,7 @@ int Viewer::handle(int event)
                                     {
                                         ny = ty;
 
-                                        if (tx < MAX_TERMS - 1 && term_x[ty][tx + 1].term != -1)
+                                        if (tx < MAX_TERMS - 1 && cells[ty][tx + 1].term != -1)
                                         {
                                             nx = tx + 1;
                                             return true;
@@ -426,9 +420,9 @@ int Viewer::handle(int event)
                                 //     std::cout << " " << term_x[tyi][txi].ancestors[i];
                                 // std::cout << std::endl;
 
-                                int const * a = term_x[tyi][txi].ancestors;
+                                int const * a = cells[tyi][txi].ancestors;
                                 found = false;
-                                for (int ai = 0; !found && ai < term_x[tyi][txi].ancestor_count; ++ai)
+                                for (int ai = 0; !found && ai < cells[tyi][txi].ancestor_count; ++ai)
                                     if (a[ai] == t.ancestors[0])
                                         found = true;
 
@@ -437,19 +431,19 @@ int Viewer::handle(int event)
                                 // std::cout << "related: " << related << std::endl;
                                 if (related)
                                 {
-                                    if (start > term_x[tyi][txi].start)
-                                        start = term_x[tyi][txi].start;
+                                    if (start > cells[tyi][txi].start)
+                                        start = cells[tyi][txi].start;
 
-                                    if (top > term_x[tyi][txi].top)
+                                    if (top > cells[tyi][txi].top)
                                     {
                                         // extra_height += (ty - tyi) * Settings::Instance::grab().as_line_height();
-                                        extra_height += (top - term_x[tyi][txi].top);
-                                        top = term_x[tyi][txi].top;
+                                        extra_height += (top - cells[tyi][txi].top);
+                                        top = cells[tyi][txi].top;
                                     }
 
                                     // this can happen when the prev term is on the prev line!
-                                    if (end < term_x[tyi][txi].end)
-                                        end = term_x[tyi][txi].end;
+                                    if (end < cells[tyi][txi].end)
+                                        end = cells[tyi][txi].end;
                                 }
                                 else
                                 {
@@ -473,9 +467,9 @@ int Viewer::handle(int event)
                                 //     std::cout << " " << term_x[tyi][txi].ancestors[i];
                                 // std::cout << std::endl;
 
-                                int const * a = term_x[tyi][txi].ancestors;
+                                int const * a = cells[tyi][txi].ancestors;
                                 found = false;
-                                for (int ai = 0; !found && ai < term_x[tyi][txi].ancestor_count; ++ai)
+                                for (int ai = 0; !found && ai < cells[tyi][txi].ancestor_count; ++ai)
                                     if (a[ai] == t.ancestors[0])
                                         found = true;
 
@@ -484,14 +478,14 @@ int Viewer::handle(int event)
 
                                 if (related)
                                 {
-                                    if (start > term_x[tyi][txi].start)
-                                        start = term_x[tyi][txi].start;
+                                    if (start > cells[tyi][txi].start)
+                                        start = cells[tyi][txi].start;
 
-                                    if (end < term_x[tyi][txi].end)
-                                        end = term_x[tyi][txi].end;
+                                    if (end < cells[tyi][txi].end)
+                                        end = cells[tyi][txi].end;
 
                                     if (tyi != prev_tyi)
-                                        extra_height += (term_x[tyi][txi].top - term_x[prev_tyi][0].top);
+                                        extra_height += (cells[tyi][txi].top - cells[prev_tyi][0].top);
                                 }
                                 else
                                 {
@@ -639,7 +633,7 @@ void Viewer::draw_content()
 
     for (int l = 0; l < MAX_LINES; ++l)
         for (int t = 0; t < MAX_TERMS; ++t)
-            term_x[l][t].reset();
+            cells[l][t].reset();
 
     bool prev_term_visible{false};
     bool term_visible{false};
@@ -842,16 +836,16 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
 
                     if (yi < MAX_LINES)
                     {
-                        term_x[yi][xi].term = term;
-                        term_x[yi][xi].ancestors = ancestors;
-                        term_x[yi][xi].ancestor_count = ancestor_count;
-                        term_x[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
-                        term_x[yi][xi].start = xp;
+                        cells[yi][xi].term = term;
+                        cells[yi][xi].ancestors = ancestors;
+                        cells[yi][xi].ancestor_count = ancestor_count;
+                        cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+                        cells[yi][xi].start = xp;
                         top = yp - scroll_offset - line_height;
-                        term_x[yi][xi].top = top;
-                        term_x[yi][xi].book = book;
-                        term_x[yi][xi].chapter = chapter;
-                        term_x[yi][xi].paragraph = paragraph;
+                        cells[yi][xi].top = top;
+                        cells[yi][xi].book = book;
+                        cells[yi][xi].chapter = chapter;
+                        cells[yi][xi].paragraph = paragraph;
 
                         term_visible = true;
                     }
@@ -863,7 +857,7 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
                     if (yi < MAX_LINES)
                     {
                         end = xp;
-                        term_x[yi][xi].end = xp;
+                        cells[yi][xi].end = xp;
                     }
                     ++xi;
 
@@ -908,16 +902,16 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
 
                     if (yi < MAX_LINES)
                     {
-                        term_x[yi][xi].term = term;
-                        term_x[yi][xi].ancestors = ancestors;
-                        term_x[yi][xi].ancestor_count = ancestor_count;
-                        term_x[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
-                        term_x[yi][xi].start = xp;
-                        term_x[yi][xi].end = end;
-                        term_x[yi][xi].top = top;
-                        term_x[yi][xi].book = book;
-                        term_x[yi][xi].chapter = chapter;
-                        term_x[yi][xi].paragraph = paragraph;
+                        cells[yi][xi].term = term;
+                        cells[yi][xi].ancestors = ancestors;
+                        cells[yi][xi].ancestor_count = ancestor_count;
+                        cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+                        cells[yi][xi].start = xp;
+                        cells[yi][xi].end = end;
+                        cells[yi][xi].top = top;
+                        cells[yi][xi].book = book;
+                        cells[yi][xi].chapter = chapter;
+                        cells[yi][xi].paragraph = paragraph;
 
                         term_visible = true;
                     }
@@ -938,7 +932,7 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
 
             for (int i = 0; i < wrapped_line_count; ++i)
                 if (initial_yi + i < MAX_LINES)
-                    term_x[initial_yi + i][0].height = wrapped_line_count * line_height;
+                    cells[initial_yi + i][0].height = wrapped_line_count * line_height;
 
             return;
         }
@@ -966,16 +960,16 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
 
         if (yi < MAX_LINES)
         {
-            term_x[yi][xi].term = term;
-            term_x[yi][xi].ancestors = ancestors;
-            term_x[yi][xi].ancestor_count = ancestor_count;
-            term_x[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
-            term_x[yi][xi].start = xp;
-            term_x[yi][xi].top = yp - scroll_offset - line_height;
-            term_x[yi][xi].height = line_height;
-            term_x[yi][xi].book = book;
-            term_x[yi][xi].chapter = chapter;
-            term_x[yi][xi].paragraph = paragraph;
+            cells[yi][xi].term = term;
+            cells[yi][xi].ancestors = ancestors;
+            cells[yi][xi].ancestor_count = ancestor_count;
+            cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+            cells[yi][xi].start = xp;
+            cells[yi][xi].top = yp - scroll_offset - line_height;
+            cells[yi][xi].height = line_height;
+            cells[yi][xi].book = book;
+            cells[yi][xi].chapter = chapter;
+            cells[yi][xi].paragraph = paragraph;
 
             term_visible = true;
         }
@@ -985,7 +979,7 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
         }
         xp += s_width;
         if (yi < MAX_LINES)
-            term_x[yi][xi].end = xp;
+            cells[yi][xi].end = xp;
         ++xi;
     }
     else

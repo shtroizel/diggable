@@ -18,7 +18,7 @@ public:
     void set_book_viewer(BookViewer * bv);
 
 private:
-    void on_selected_term_changed(TermX const & term) override;
+    void on_selected_term_changed(Cell const & term) override;
     std::vector<int> const & chapters() override;
 
 private:

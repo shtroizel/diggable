@@ -19,6 +19,7 @@
 
 int const MONO_FONT{4};
 int const BKSPC{65288};
+int const DELETE{65535};
 float const HOVER_BOX_MARGIN_SIZE{2};
 
 
@@ -26,8 +27,6 @@ float const HOVER_BOX_MARGIN_SIZE{2};
 TermViewer::TermViewer(int x, int y, int w, int h)
     : Fl_Widget{x, y, w, h, nullptr}
     , search_bar_height{Settings::Instance::grab().as_line_height() * 2}
-    , wf{}
-    , cs{wf}
 {
 }
 
@@ -87,12 +86,34 @@ int TermViewer::handle(int event)
             return 1;
         case FL_KEYBOARD:
             {
+                WordStack & ws = Settings::Instance::grab().as_mutable_word_stack();
+                CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+
+                // std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << Fl::event_key() << "'" << std::endl;
                 switch (Fl::event_key())
                 {
                     case BKSPC:
                         cs.pop();
                         if (nullptr != book_viewer)
                             book_viewer->redraw();
+                        break;
+
+                    case DELETE:
+                        {
+                            if (0 == ws.size())
+                                return 1;
+
+                            auto & [s, ds] = ws.top();
+
+                            while (cs.count() > 1)
+                                cs.pop();
+
+                            for (auto ch : s)
+                                cs.push(ch);
+
+                            ws.pop();
+                            cs.top().display_start = ds;
+                        }
                         break;
 
                     default:
@@ -102,7 +123,6 @@ int TermViewer::handle(int event)
                                 return 1;
 
                             int key = s[0];
-                            std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << key << "'" << std::endl;
                             cs.push(key);
                             if (nullptr != book_viewer)
                                 book_viewer->redraw();
@@ -138,15 +158,13 @@ int TermViewer::handle(int event)
             return 1;
         case FL_PUSH:
             {
+                CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
                 std::vector<int> & c = cs.top().standard_completion;
 
                 int ci = (Fl::event_y() - (y() + search_bar_height + margins)) /
                                Settings::Instance::grab().as_line_height();
 
-                if (
-                    cs.count() > 1 &&
-                    Fl::event_y() > search_bar_height
-                )
+                if (cs.count() > 1 && Fl::event_y() > search_bar_height)
                 {
                     int sum = 0;
                     for (int dli = 0; dli < (int) display_locations.size(); ++dli)
@@ -176,14 +194,9 @@ int TermViewer::handle(int event)
                         term_colors[Settings::Instance::grab().as_selected_term()] =
                                 Settings::Instance::grab().as_foreground_color();
 
-                    // update selected term
                     Settings::Instance::grab().set_selected_term(c[ci + display_start]);
 
-                    if (nullptr != location_viewer)
-                        location_viewer->locate();
-
-                    if (nullptr != book_viewer)
-                        book_viewer->redraw();
+                    on_selected_term_changed();
 
                     redraw();
                     break;
@@ -192,6 +205,7 @@ int TermViewer::handle(int event)
             return 1;
         case FL_MOVE:
             {
+                CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
                 std::vector<int> & c = cs.top().standard_completion;
                 int const line_height = Settings::Instance::grab().as_line_height();
 
@@ -200,10 +214,7 @@ int TermViewer::handle(int event)
 
                 // std::cout << "cy: " << ci << "       c.size(): " << c.size() << std::endl;
 
-                if (
-                    cs.count() > 1 &&
-                    Fl::event_y() > search_bar_height
-                )
+                if (cs.count() > 1 && Fl::event_y() > search_bar_height)
                 {
                     int box_width{0};
                     matchmaker::at(c[ci + display_start], &box_width);
@@ -262,6 +273,27 @@ int TermViewer::handle(int event)
 
 
 
+void TermViewer::on_selected_term_changed()
+{
+    if (nullptr != location_viewer)
+        location_viewer->locate();
+
+    if (nullptr != book_viewer)
+        book_viewer->redraw();
+
+    // // save old prefix to word_stack
+    // Settings::Instance::grab().as_mutable_word_stack().push(
+    //     {
+    //         Settings::Instance::grab().as_cs().top().prefix,
+    //         Settings::Instance::grab().as_cs().top().display_start
+    //     }
+    // );
+    //
+    // refresh_completion_stack();
+}
+
+
+
 void TermViewer::set_book_viewer(BookViewer * bv)
 {
     book_viewer = bv;
@@ -282,6 +314,7 @@ void TermViewer::refresh_completion_stack()
     char const * selected = matchmaker::at(
             Settings::Instance::grab().as_selected_term(), &selected_len);
 
+    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
     while (cs.count() > 1)
         cs.pop();
 
@@ -303,6 +336,8 @@ void TermViewer::leave()
 
 void TermViewer::draw_search_bar()
 {
+    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+
     // clear
     fl_rectf(x(), y(), w(), search_bar_height, Settings::Instance::grab().as_background_color());
 
@@ -337,10 +372,16 @@ void TermViewer::draw_search_bar()
 
 void TermViewer::draw_completion()
 {
-    // clear
-    fl_rectf(x(), y() + search_bar_height, w(), h() - search_bar_height, Settings::Instance::grab().as_background_color());
+    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
 
-    fl_color(Settings::Instance::grab().as_foreground_color());
+    // clear
+    fl_rectf(
+        x(),
+        y() + search_bar_height,
+        w(),
+        h() - search_bar_height, Settings::Instance::grab().as_background_color()
+    );
+
     fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
 
     if (cs.count() > 1)
@@ -393,7 +434,9 @@ void TermViewer::draw_completion()
                             ++cur_chars_to_write;
                     }
 
-                    fl_draw(word, cur_chars_to_write, xp, yp);
+                    if (yp + line_height < y() + h())
+                        fl_draw(word, cur_chars_to_write, xp, yp);
+
                     display_locations[i].first = i;
                     display_locations[i].second = 1;
                 }
@@ -414,7 +457,8 @@ void TermViewer::draw_completion()
                             ++cur_chars_to_write;
                     }
 
-                    fl_draw(word, cur_chars_to_write, xp + indent_x, yp);
+                    if (yp + line_height < y() + h())
+                        fl_draw(word, cur_chars_to_write, xp + indent_x, yp);
 
                     Fl_Color prev_color = fl_color();
                     fl_color(Settings::Instance::grab().as_wrap_indicator_color());
@@ -427,9 +471,11 @@ void TermViewer::draw_completion()
 
                     int const x2 = xp + indent_x - indent_x * 2 / 5;
                     int const y2 = y1;
-                    fl_line(x0, y0, x1, y1, x2, y2);
-                    fl_color(prev_color);
 
+                    if (y2 + line_height < y() + h())
+                        fl_line(x0, y0, x1, y1, x2, y2);
+
+                    fl_color(prev_color);
                     --available_lines;
 
                     if (i < (int) display_locations.size())

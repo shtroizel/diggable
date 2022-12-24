@@ -5,15 +5,10 @@
 
 #include <matchable/matchable_fwd.h>
 
+#include <word_filter.h>
 
-struct word_filter;
 
 
-/**
- * The CompletionStack class provides the data for everything that is seen in the various views under
- * the "completable" tab. The stack consists of "completion" structs, with each representing the letters
- * making up a word as typed so far (completion prefix).
- */
 class CompletionStack
 {
     static int const CAPACITY = 108;
@@ -44,7 +39,7 @@ public:
         int ant_display_start{0};
     };
 
-    CompletionStack(word_filter const &);
+    CompletionStack();
 
     /**
      * Add a letter (character) to the stack if doing so would make an known word
@@ -86,5 +81,5 @@ private:
     completion completions[CAPACITY];
     int completion_count{1};
 
-    word_filter const & wf;
+    word_filter wf;
 };

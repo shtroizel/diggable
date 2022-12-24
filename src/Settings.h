@@ -1,12 +1,25 @@
 #pragma once
 
+#include <stack>
+
 #include <FL/Enumerations.H>
 
 #include <matchable/matchable.h>
 
+#include <CompletionStack.h>
 
 
-PROPERTYx14_MATCHABLE(
+
+struct WordStackElement
+{
+    std::string word;
+    int display_start;
+};
+
+
+using WordStack = std::stack<WordStackElement>;
+
+PROPERTYx16_MATCHABLE(
     Fl_Color, background_color,
     Fl_Color, input_background_color,
     Fl_Color, foreground_color,
@@ -21,6 +34,8 @@ PROPERTYx14_MATCHABLE(
     int8_t, font_size,
     float, line_height_factor,
     int8_t, line_height,
+    CompletionStack, completion_stack,
+    WordStack, word_stack,
 
     Settings,
 

@@ -4,6 +4,7 @@
 
 #include <matchmaker.h>
 #include <LocationViewer.h>
+#include <Settings.h>
 #include <TermViewer.h>
 
 
@@ -28,10 +29,15 @@ void BookViewer::set_location_viewer(LocationViewer * l)
 
 
 
-void BookViewer::on_selected_term_changed(TermX const &)
+void BookViewer::on_selected_term_changed(Cell const &)
 {
     if (nullptr != location_viewer)
         location_viewer->locate();
+
+    // save old prefix to word_stack
+    WordStack & ws = Settings::Instance::grab().as_mutable_word_stack();
+    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+    ws.push({ cs.top().prefix, cs.top().display_start });
 
     if (nullptr != term_viewer)
         term_viewer->refresh_completion_stack();

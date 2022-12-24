@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include <CompletionStack.h>
 #include <word_filter.h>
 
 
@@ -32,6 +31,7 @@ private:
     void draw_search_bar();
     void draw_completion();
     void draw_synonyms();
+    void on_selected_term_changed();
 
 private:
     int term{-1};
@@ -39,10 +39,8 @@ private:
     LocationViewer * location_viewer{nullptr};
     int search_bar_height;
     int margins{5};
-    word_filter wf;
-    CompletionStack cs;
     int display_start{0};
-    int lines_to_scroll_at_a_time{2};
+    int lines_to_scroll_at_a_time{1};
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
 

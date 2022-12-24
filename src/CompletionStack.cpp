@@ -8,7 +8,7 @@
 
 
 
-CompletionStack::CompletionStack(word_filter const & f) : wf(f)
+CompletionStack::CompletionStack()
 {
     clear_top();
 }

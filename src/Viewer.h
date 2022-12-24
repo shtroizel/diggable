@@ -37,9 +37,9 @@ protected:
                      int index_within_first_ancestor,
                      int & xp, int & yp, int & xi, bool & term_visible);
 
-    struct TermX
+    struct Cell
     {
-        TermX()
+        Cell()
         {
             reset();
         }
@@ -71,7 +71,7 @@ protected:
     };
     static int const MAX_LINES{216};  // maxium visible lines
     static int const MAX_TERMS{210};  // maxium visible terms per line
-    TermX term_x[MAX_LINES][MAX_TERMS];
+    Cell cells[MAX_LINES][MAX_TERMS];
 
     std::vector<int> scroll_offsets_by_chapter;
     bool offsets_dirty{true}; // flag for rebuilding scroll_offsets_by_chapter (cached)
@@ -83,7 +83,7 @@ protected:
 
 private:
     virtual std::vector<int> const & chapters() = 0;
-    virtual void on_selected_term_changed(TermX const &) {}
+    virtual void on_selected_term_changed(Cell const &) {}
 
 
     void draw_scrollbar();
