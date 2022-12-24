@@ -17,11 +17,11 @@ class TermViewer;
 
 
 
-class Viewer : public Fl_Widget
+class CellViewer : public Fl_Widget
 {
 public:
-    Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl);
-    ~Viewer() noexcept;
+    CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl);
+    ~CellViewer() noexcept;
     void draw() override;
     int handle(int event) override;
     void scroll_to_offset(int offset);

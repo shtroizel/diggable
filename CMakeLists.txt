@@ -38,9 +38,11 @@ include_directories(
 
 set(
     diggable_srcs
-    src/diggable.cpp
+    src/CellViewer.cpp
+    src/CellViewer.h
     src/BookViewer.cpp
     src/BookViewer.h
+    src/diggable.cpp
     src/LocationViewer.cpp
     src/LocationViewer.h
     src/TermViewer.cpp
@@ -51,8 +53,6 @@ set(
     src/matchmaker.cpp
     src/matchmaker.h
     src/Settings.h
-    src/Viewer.cpp
-    src/Viewer.h
 )
 
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Viewer.h"
+#include <CellViewer.h>
 
 #include <vector>
 
@@ -8,7 +8,7 @@
 
 class LocationViewer;
 
-class BookViewer : public Viewer
+class BookViewer : public CellViewer
 {
 public:
     BookViewer(int x, int y, int w, int h);

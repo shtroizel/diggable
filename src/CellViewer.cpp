@@ -1,4 +1,4 @@
-#include <Viewer.h>
+#include <CellViewer.h>
 
 #include <iostream>
 #include <functional>
@@ -21,7 +21,7 @@ float const HOVER_BOX_MARGIN_SIZE{2};
 
 
 
-Viewer::Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
+CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
     : Fl_Widget{x, y, w, h, nullptr}
     , scrollbar_location{sl}
 {
@@ -43,13 +43,13 @@ Viewer::Viewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
 
 
 
-Viewer::~Viewer() noexcept
+CellViewer::~CellViewer() noexcept
 {
 }
 
 
 
-void Viewer::draw()
+void CellViewer::draw()
 {
     draw_content();
     draw_scrollbar();
@@ -68,7 +68,7 @@ void Viewer::draw()
 
 
 
-void Viewer::draw_scrollbar()
+void CellViewer::draw_scrollbar()
 {
     // clear
     fl_rectf(scrollbar_x, y(), scrollbar_width, h(), Settings::Instance::grab().as_background_color());
@@ -108,7 +108,7 @@ void Viewer::draw_scrollbar()
 
 
 
-void Viewer::draw_scrollbar_labels()
+void CellViewer::draw_scrollbar_labels()
 {
     // clear label
     fl_rectf(
@@ -209,7 +209,7 @@ void Viewer::draw_scrollbar_labels()
 }
 
 
-int Viewer::handle(int event)
+int CellViewer::handle(int event)
 {
     hover_box_visible = false;
     switch(event) {
@@ -551,7 +551,7 @@ int Viewer::handle(int event)
 }
 
 
-void Viewer::scroll_to_y(int ey)
+void CellViewer::scroll_to_y(int ey)
 {
     // std::cout << "Viewer::scroll_to_y(" << ey << ")" << std::endl;
 
@@ -579,7 +579,7 @@ void Viewer::scroll_to_y(int ey)
 
 
 
-void Viewer::leave()
+void CellViewer::leave()
 {
     hover_box_visible = false;
     redraw();
@@ -587,14 +587,14 @@ void Viewer::leave()
 
 
 
-void Viewer::set_term_viewer(TermViewer * l)
+void CellViewer::set_term_viewer(TermViewer * l)
 {
     term_viewer = l;
 }
 
 
 
-void Viewer::scroll_to_offset(int offset)
+void CellViewer::scroll_to_offset(int offset)
 {
     if (offset < 0 || offset >= (int) scroll_offsets_by_chapter.size())
     {
@@ -609,7 +609,7 @@ void Viewer::scroll_to_offset(int offset)
 
 
 
-void Viewer::draw_content()
+void CellViewer::draw_content()
 {
     if (offsets_dirty)
     {
@@ -768,7 +768,7 @@ void Viewer::draw_content()
 
 
 
-void Viewer::append_term(int term, int book, int chapter, int paragraph,
+void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                              int const * ancestors, int ancestor_count,
                              int index_within_first_ancestor,
                              int & xp, int & yp, int & xi, bool & term_visible)
@@ -991,7 +991,7 @@ void Viewer::append_term(int term, int book, int chapter, int paragraph,
 
 
 
-void Viewer::reposition()
+void CellViewer::reposition()
 {
     scrollbar_location.match(
         {

@@ -12,7 +12,7 @@
 
 
 LocationViewer::LocationViewer(int x, int y, int w, int h)
-    : Viewer{x, y, w, h, ScrollbarLocation::Right::grab()}
+    : CellViewer{x, y, w, h, ScrollbarLocation::Right::grab()}
 {
 }
 
