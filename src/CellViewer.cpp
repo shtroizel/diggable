@@ -783,11 +783,25 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
     for (int i = 0; i < ancestor_count && draw_color == Settings::Instance::grab().as_foreground_color(); ++i)
         draw_color = Settings::Instance::grab().as_term_colors_vect()[ancestors[i]];
 
+    int const available_width = (int) (content_width) / fl_width("Q");
+
     if (xp + s_width > content_x + content_width)
     {
-        if (xp == content_x)
+        if (s_width <= (content_width - xp) + content_width && xp != content_x)
         {
-            int const available_width = (int) (content_width) / fl_width("Q");
+            xp = content_x;
+            yp += line_height;
+            xi = 0;
+        }
+        else
+        {
+            if (s_width > (content_width - xp) + content_width && xp != content_x)
+            {
+                xp = content_x;
+                yp += line_height;
+                xi = 0;
+            }
+
             int const indent_char_count = 3;
             int const indent_x = fl_width("q") * indent_char_count;
             int const line_height = Settings::Instance::grab().as_line_height();
@@ -936,23 +950,21 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
 
             return;
         }
-        else
-        {
-            xp = content_x;
-            yp += line_height;
-            xi = 0;
-        }
     }
 
     if (yp >= scroll_offset)
     {
         if (!offsets_dirty)
         {
+            int draw_len = s_len;
+            if (draw_len > available_width)
+            {
+                std::cout << "CellViewer::append_term() --> wrapping failed!" << std::endl;
+                draw_len = available_width;
+            }
+
             fl_color(draw_color);
-            // TODO see https://www.fltk.org/doc-1.3/drawing.html#ssect_Text
-            // "To align to the bottom, subtract fl_descent() from y. To align to the top, subtract fl_descent() and add fl_height()"
-            fl_draw(s, s_len, xp, yp - line_height - scroll_offset + fl_size());
-            // fl_color(Settings::Instance::grab().as_foreground_color());
+            fl_draw(s, draw_len, xp, yp - line_height - scroll_offset + fl_size());
         }
         int yi = (yp - line_height - scroll_offset) / line_height;
         if (yi < 0)
