@@ -1,11 +1,16 @@
 #include <BookViewer.h>
 
+#include <cstring>
+
+#include <iostream>
 #include <vector>
 
-#include <matchmaker.h>
+#include <Data.h>
 #include <LocationViewer.h>
 #include <Settings.h>
 #include <TermViewer.h>
+#include <Viewer.h>
+#include <matchmaker.h>
 
 
 
@@ -18,29 +23,7 @@ BookViewer::BookViewer(int x, int y, int w, int h)
 
 BookViewer::~BookViewer() noexcept
 {
-}
-
-
-
-void BookViewer::set_location_viewer(LocationViewer * l)
-{
-    location_viewer = l;
-}
-
-
-
-void BookViewer::on_selected_term_changed(Cell const &)
-{
-    if (nullptr != location_viewer)
-        location_viewer->locate();
-
-    // save old prefix to word_stack
-    WordStack & ws = Settings::Instance::grab().as_mutable_word_stack();
-    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
-    ws.push({ cs.top().prefix, cs.top().display_start });
-
-    if (nullptr != term_viewer)
-        term_viewer->refresh_completion_stack();
+    // Global::Instance::grab().set_book_viewer(nullptr);
 }
 
 
@@ -59,4 +42,33 @@ std::vector<int> const & BookViewer::chapters()
                 return ret;
             }();
     return ch;
+}
+
+
+
+int & BookViewer::scroll_offset()
+{
+    // TermStack & ts = Data::nil.as_mutable_term_stack();
+    // static int zero = 0;
+    // if (ts.empty())
+    // {
+    //     std::cout << "BookViewer::scroll_offset() --> ERROR: term stack is empty!" << std::endl;
+    //     return zero;
+    // }
+
+    return Data::nil.as_mutable_term_stack().back().bv_scroll_offset;
+}
+
+
+
+Viewer::Type BookViewer::type() const
+{
+    return Viewer::BookViewer::grab();
+}
+
+
+
+Fl_Color BookViewer::foreground_color() const
+{
+    return Settings::nil.as_bv_foreground_color();
 }

@@ -1,15 +1,17 @@
 #pragma once
 
+#include <deque>
+
+// #include <FL/Fl_Window.H>
 #include <FL/Fl_Double_Window.H>
-
-#include <vector>
-
 
 
 class BookViewer;
 class LocationViewer;
 class TermViewer;
 
+
+// class MainWindow : public Fl_Window
 class MainWindow : public Fl_Double_Window
 {
 public:

@@ -1,10 +1,12 @@
 #pragma once
 
-#include <FL/Fl_Widget.H>
+#include <AbstractViewer.h>
 
 #include <vector>
 
 #include <matchable/matchable.h>
+
+#include <Data.h>
 
 
 
@@ -12,12 +14,14 @@ MATCHABLE(ScrollbarLocation, Left, Right)
 
 
 
+MATCHABLE_FWD(Viewer)
+
 class LocationViewer;
 class TermViewer;
 
 
 
-class CellViewer : public Fl_Widget
+class CellViewer : public AbstractViewer
 {
 public:
     CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl);
@@ -27,7 +31,6 @@ public:
     void scroll_to_offset(int offset);
     void scroll_to_y(int ey);
     void leave();
-    void set_term_viewer(TermViewer * l);
 
 
 protected:
@@ -70,21 +73,16 @@ protected:
         int paragraph;
     };
     static int const MAX_LINES{216};  // maxium visible lines
-    static int const MAX_TERMS{210};  // maxium visible terms per line
-    Cell cells[MAX_LINES][MAX_TERMS];
+    static int const MAX_CELLS_PER_LINE{210};  // maxium visible terms per line
+    Cell cells[MAX_LINES][MAX_CELLS_PER_LINE];
 
     std::vector<int> scroll_offsets_by_chapter;
     bool offsets_dirty{true}; // flag for rebuilding scroll_offsets_by_chapter (cached)
 
-    int scroll_offset{0};
-    int first_visible_chapter{0};
-    TermViewer * term_viewer{nullptr};
-
 
 private:
     virtual std::vector<int> const & chapters() = 0;
-    virtual void on_selected_term_changed(Cell const &) {}
-
+    virtual int & scroll_offset() = 0;
 
     void draw_scrollbar();
     void draw_scrollbar_labels();
@@ -92,9 +90,7 @@ private:
     void reposition();
 
 
-    LocationViewer * location_viewer{nullptr};
     Fl_Boxtype scroller_boxtype{FL_BORDER_FRAME};
-    // Fl_Color scroller_color{FL_FOREGROUND_COLOR};
     int max_scroll_offset{0};
     int lines_to_scroll_at_a_time{4};
     int scrollbar_label_width{45};

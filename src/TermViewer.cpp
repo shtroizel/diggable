@@ -11,9 +11,11 @@
 
 #include <BookViewer.h>
 #include <CompletionStack.h>
+#include <Data.h>
 #include <LocationViewer.h>
 #include <matchmaker.h>
 #include <Settings.h>
+#include <Viewer.h>
 
 
 
@@ -25,37 +27,31 @@ float const HOVER_BOX_MARGIN_SIZE{2};
 
 
 TermViewer::TermViewer(int x, int y, int w, int h)
-    : Fl_Widget{x, y, w, h, nullptr}
-    , search_bar_height{Settings::Instance::grab().as_line_height() * 2}
+    : AbstractViewer{x, y, w, h}
+    , single_line_search_bar_height{Settings::nil.as_line_height() * 2}
+    , button_bar_height{single_line_search_bar_height}
 {
+    search_bar_height = single_line_search_bar_height;
 }
 
 
 
 TermViewer::~TermViewer() noexcept
 {
+    // Settings::nil.set_term_viewer(nullptr);
 }
 
 
 
 void TermViewer::draw()
 {
-    // if (!initialized)
-    //     return;
-
-    // fl_rectf(x(), y(), w(), h(), Settings::Instance::grab().as_background_color());
-
-
-    // fl_draw_box(FL_BORDER_FRAME,
-    //             x() + 1,
-    //             y() + 1,
-    //             w() - 2,
-    //             h() - 2,
-    //             FL_FOREGROUND_COLOR);
+    // refresh_search_bar_height();
+    // fl_rectf(x(), y(), w(), h(), Settings::nil.as_background_color());
 
     draw_search_bar();
     draw_completion();
-
+    draw_word_stack();
+    draw_button_bar();
 
     if (hover_box_visible)
     {
@@ -64,7 +60,7 @@ void TermViewer::draw()
                     hover_box[1],
                     hover_box[2] + HOVER_BOX_MARGIN_SIZE * 2,
                     hover_box[3],
-                    Settings::Instance::grab().as_hover_color());
+                    Settings::nil.as_hover_color());
     }
 }
 
@@ -78,43 +74,33 @@ int TermViewer::handle(int event)
     {
         case FL_FULLSCREEN:
         case FL_NO_EVENT:
+            // refresh_search_bar_height();
+            // redraw();
             return 0;
         case FL_FOCUS:
         case FL_ENTER:
-            {
-            }
+            // refresh_search_bar_height();
+            // redraw();
             return 1;
         case FL_KEYBOARD:
             {
-                WordStack & ws = Settings::Instance::grab().as_mutable_word_stack();
-                CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+                CompletionStack & cs = Data::nil.as_mutable_completion_stack();
 
                 // std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << Fl::event_key() << "'" << std::endl;
                 switch (Fl::event_key())
                 {
                     case BKSPC:
                         cs.pop();
-                        if (nullptr != book_viewer)
-                            book_viewer->redraw();
+                        // if (nullptr != book_viewer)
+                        //     book_viewer->redraw();
                         break;
 
                     case DELETE:
-                        {
-                            if (0 == ws.size())
-                                return 1;
-
-                            auto & [s, ds] = ws.top();
-
-                            while (cs.count() > 1)
-                                cs.pop();
-
-                            for (auto ch : s)
-                                cs.push(ch);
-
-                            ws.pop();
-                            cs.top().display_start = ds;
-                        }
-                        break;
+                        if (!Data::pop_term_stack())
+                            return 1;
+                        // update_selection_from_completion_stack();
+                        // redraw();
+                        return 1;
 
                     default:
                         {
@@ -124,47 +110,53 @@ int TermViewer::handle(int event)
 
                             int key = s[0];
                             cs.push(key);
-                            if (nullptr != book_viewer)
-                                book_viewer->redraw();
                         }
                 };
 
-
-                if (cs.top().standard_completion.size() > 0)
-                {
-                    if (nullptr != location_viewer)
-                    {
-                        int term = cs.top().standard_completion.front();
-                        std::vector<Fl_Color> & term_colors =
-                                Settings::Instance::grab().as_mutable_term_colors_vect();
-
-                        // deselect previous term
-                        if (-1 != Settings::Instance::grab().as_selected_term() &&
-                                Settings::Instance::grab().as_selected_term() != term)
-                            term_colors[Settings::Instance::grab().as_selected_term()] =
-                                    Settings::Instance::grab().as_foreground_color();
-
-                        // select completion
-                        term_colors[term] = Settings::Instance::grab().as_highlight_color();
-
-                        // set selected term
-                        Settings::Instance::grab().set_selected_term(term);
-
-                        location_viewer->locate();
-                    }
-                }
+                // update_selection_from_completion_stack();
+                // if (cs.top().standard_completion.size() > 0)
+                // {
+                //     if (nullptr != location_viewer)
+                //     {
+                //         int term = cs.top().standard_completion.front();
+                //         std::vector<Fl_Color> & term_colors =
+                //                 Settings::nil.as_mutable_term_colors_vect();
+                //
+                //         // deselect previous term
+                //         if (-1 != Settings::nil.as_selected_term() &&
+                //                 Settings::nil.as_selected_term() != term)
+                //             term_colors[Settings::nil.as_selected_term()] =
+                //                     Settings::nil.as_foreground_color();
+                //
+                //         // select completion
+                //         term_colors[term] = Settings::nil.as_highlight_color();
+                //
+                //         // set selected term
+                //         Settings::nil.set_selected_term(term);
+                //
+                //         if (nullptr != location_viewer)
+                //             location_viewer->locate();
+                //     }
+                // }
             }
             redraw();
             return 1;
         case FL_PUSH:
             {
-                CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+                CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                 std::vector<int> & c = cs.top().standard_completion;
 
-                int ci = (Fl::event_y() - (y() + search_bar_height + margins)) /
-                               Settings::Instance::grab().as_line_height();
+                int const ey = Fl::event_y();
+                int const ex = Fl::event_x();
+                int const tsh = term_stack_height();
+                int const line_height = Settings::nil.as_line_height();
+                int ci = (ey - (y() + search_bar_height + margins)) / line_height;
 
-                if (cs.count() > 1 && Fl::event_y() > search_bar_height)
+                if (
+                    cs.count() > 1 &&
+                    ey > y() + search_bar_height &&
+                    ey < y() + h() - button_bar_height - tsh - line_height - margins * 2
+                )
                 {
                     int sum = 0;
                     for (int dli = 0; dli < (int) display_locations.size(); ++dli)
@@ -177,47 +169,89 @@ int TermViewer::handle(int event)
                         }
                     }
 
-                    if (ci >= (int) c.size() - display_start)
+                    if (ci >= (int) c.size() - cs.top().display_start)
                         return 1;
 
-                    std::vector<Fl_Color> & term_colors =
-                            Settings::Instance::grab().as_mutable_term_colors_vect();
 
-                    if (term_colors[c[ci] + display_start] == Settings::Instance::grab().as_foreground_color())
-                        term_colors[c[ci] + display_start] = Settings::Instance::grab().as_highlight_color();
-                    else
-                        term_colors[c[ci] + display_start] = Settings::Instance::grab().as_foreground_color();
+                    // std::vector<Fl_Color> & term_colors =
+                    //         Settings::nil.as_mutable_term_colors_vect();
+                    //
+                    // if (term_colors[c[ci] + cs.top().display_start] == Settings::nil.as_foreground_color())
+                    //     term_colors[c[ci] + cs.top().display_start] = Settings::nil.as_highlight_color();
+                    // else
+                    //     term_colors[c[ci] + cs.top().display_start] = Settings::nil.as_foreground_color();
+                    //
+                    // // deselect previous term
+                    // if (-1 != Settings::nil.as_selected_term() &&
+                    //         Settings::nil.as_selected_term() != c[ci + cs.top().display_start])
+                    //     term_colors[Settings::nil.as_selected_term()] =
+                    //             Settings::nil.as_foreground_color();
+                    //
+                    // Settings::nil.set_selected_term(c[ci + cs.top().display_start]);
+                    //
+                    // on_selected_term_changed();
 
-                    // deselect previous term
-                    if (-1 != Settings::Instance::grab().as_selected_term() &&
-                            Settings::Instance::grab().as_selected_term() != c[ci + display_start])
-                        term_colors[Settings::Instance::grab().as_selected_term()] =
-                                Settings::Instance::grab().as_foreground_color();
 
-                    Settings::Instance::grab().set_selected_term(c[ci + display_start]);
-
-                    on_selected_term_changed();
+                    Data::term_clicked(c[ci] + cs.top().display_start, -1, Viewer::TermViewer::grab());
 
                     redraw();
-                    break;
+                }
+                else if ( // term stack
+                    ey > y() + h() - button_bar_height - tsh &&
+                    ey < y() + h() - button_bar_height
+                )
+                {
+                    int i = (ey - (y() + h() - button_bar_height - tsh)) / line_height;
+                    i += ts_display_start;
+                    auto const & ts = Data::nil.as_term_stack();
+                    i = (int) ts.size() - 1 - i;
+
+                    if (i > 0 && i < (int) ts.size() - 1)
+                    {
+                        std::cout << "term stack clicked!" << std::endl;
+                        Data::term_clicked(ts[i].selected_term, -1, Viewer::BookViewer::grab());
+                        redraw();
+                    }
+                    else
+                    {
+                        std::cout << "out of range!" << std::endl;
+                    }
+
+                }
+                else if ( // middle button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + w() * (button_count / 2) / button_count &&
+                    ex < x() + w() * ((button_count / 2) + 1) / button_count
+                )
+                {
+                    if (Data::pop_term_stack())
+                    {
+                        redraw();
+                    }
                 }
             }
             return 1;
         case FL_MOVE:
             {
-                CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+                CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                 std::vector<int> & c = cs.top().standard_completion;
-                int const line_height = Settings::Instance::grab().as_line_height();
+                int const line_height = Settings::nil.as_line_height();
 
-                // int const ey = Fl::event_y();
-                int ci = (Fl::event_y() - (y() + search_bar_height + margins)) / line_height;
+                int const ey = Fl::event_y();
 
                 // std::cout << "cy: " << ci << "       c.size(): " << c.size() << std::endl;
 
-                if (cs.count() > 1 && Fl::event_y() > search_bar_height)
+                int const tsh = term_stack_height();
+
+                if (
+                    cs.count() > 1 &&
+                    ey > y() + search_bar_height &&
+                    ey < y() + h() - button_bar_height - tsh - line_height - margins * 2
+                )
                 {
+                    int ci = (ey - (y() + search_bar_height + margins)) / line_height;
                     int box_width{0};
-                    matchmaker::at(c[ci + display_start], &box_width);
+                    matchmaker::at(c[ci + cs.top().display_start], &box_width);
                     box_width = box_width * fl_width("Q");
 
                     int hover_box_y = 0;
@@ -235,12 +269,28 @@ int TermViewer::handle(int event)
                         }
                     }
 
-                    if (ci < (int) c.size() - display_start)
+                    if (ci < (int) c.size() - cs.top().display_start)
                     {
                         hover_box[0] = x() + margins * 2;
                         hover_box[1] = hover_box_y * line_height + search_bar_height + margins;
                         hover_box[2] = w() - margins * 3;
                         hover_box[3] = hover_box_height;
+
+                        int overlap = hover_box[1] + hover_box[3] -
+                                (y() + h() - button_bar_height - tsh - margins);
+                        if (overlap > 0)
+                        {
+                            if (overlap > hover_box[3])
+                            {
+                                std::cout << "TermViewer::handle() --> ERROR sizing hover_box!" << std::endl;
+                                hover_box_visible = false;
+                                redraw();
+                                return 1;
+                            }
+
+                            hover_box[3] -= overlap;
+                        }
+
                         // std::cout << "    hover_box:";
                         // for (int i = 0; i < 4; ++i)
                         //     std::cout << " " << hover_box[i];
@@ -248,6 +298,33 @@ int TermViewer::handle(int event)
 
                         hover_box_visible = true;
                     }
+                }
+                else if ( // term stack
+                    ey > y() + h() - button_bar_height - tsh &&
+                    ey < y() + h() - button_bar_height
+                )
+                {
+                    int i = (ey - (y() + h() - button_bar_height - tsh)) / line_height;
+                    if (i + ts_display_start < (int) Data::nil.as_term_stack().size() - 1)
+                    {
+                        hover_box[0] = x() + margins * 2;
+                        hover_box[1] = (y() + h() - button_bar_height - tsh) + i * line_height;
+                        hover_box[2] = w() - margins * 3;
+                        hover_box[3] = line_height;
+                        hover_box_visible = true;
+                    }
+                }
+                else if ( // middle button
+                    ey > y() + h() - button_bar_height &&
+                    Fl::event_x() > x() + w() * (button_count / 2) / button_count &&
+                    Fl::event_x() < x() + w() * ((button_count / 2) + 1) / button_count
+                )
+                {
+                    hover_box[0] = x() + w() * (button_count / 2) / button_count;
+                    hover_box[1] = y() + h() - button_bar_height;
+                    hover_box[2] = w() / button_count;
+                    hover_box[3] = button_bar_height;
+                    hover_box_visible = true;
                 }
             }
             redraw();
@@ -261,9 +338,22 @@ int TermViewer::handle(int event)
             }
             return 1;
         case FL_MOUSEWHEEL:
-            display_start += Fl::event_dy() * lines_to_scroll_at_a_time;
-            redraw();
-            return 1;
+            {
+                if (Fl::event_y() < y() + h() - button_bar_height - term_stack_height())
+                {
+                    Data::nil.as_mutable_completion_stack().top().display_start +=
+                            Fl::event_dy() * lines_to_scroll_at_a_time;
+                    redraw();
+                    return 1;
+                }
+                else if (Fl::event_y() < y() + h() - button_bar_height)
+                {
+                    ts_display_start += Fl::event_dy();
+                    redraw();
+                    return 1;
+                }
+            }
+            break;
         default:
             return Fl_Widget::handle(event);
     }
@@ -273,23 +363,15 @@ int TermViewer::handle(int event)
 
 
 
-void TermViewer::on_selected_term_changed()
+int TermViewer::term_stack_height()
 {
-    if (nullptr != location_viewer)
-        location_viewer->locate();
-
-    if (nullptr != book_viewer)
-        book_viewer->redraw();
-
-    // // save old prefix to word_stack
-    // Settings::Instance::grab().as_mutable_word_stack().push(
-    //     {
-    //         Settings::Instance::grab().as_cs().top().prefix,
-    //         Settings::Instance::grab().as_cs().top().display_start
-    //     }
-    // );
-    //
-    // refresh_completion_stack();
+    int stack_size = Data::nil.as_term_stack().size() - 1;
+    if (stack_size > 17)
+        stack_size = 17;
+    int ret = stack_size * Settings::nil.as_line_height();
+    if (ret > h() / 1.618 / 1.618)
+        ret = h() / 1.618 / 1.618;
+    return ret;
 }
 
 
@@ -308,24 +390,6 @@ void TermViewer::set_location_viewer(LocationViewer * lv)
 
 
 
-void TermViewer::refresh_completion_stack()
-{
-    int selected_len{0};
-    char const * selected = matchmaker::at(
-            Settings::Instance::grab().as_selected_term(), &selected_len);
-
-    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
-    while (cs.count() > 1)
-        cs.pop();
-
-    for (int i = 0; i < selected_len; ++i)
-        cs.push(selected[i]);
-
-    redraw();
-}
-
-
-
 void TermViewer::leave()
 {
     hover_box_visible = false;
@@ -336,10 +400,12 @@ void TermViewer::leave()
 
 void TermViewer::draw_search_bar()
 {
-    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+    int const prev_search_bar_height = search_bar_height;
+
+    CompletionStack & cs = Data::nil.as_mutable_completion_stack();
 
     // clear
-    fl_rectf(x(), y(), w(), search_bar_height, Settings::Instance::grab().as_background_color());
+    fl_rectf(x(), y(), w(), search_bar_height, Settings::nil.as_background_color());
 
     // input area
     fl_rectf(
@@ -347,24 +413,42 @@ void TermViewer::draw_search_bar()
         y() + margins,
         w() - margins * 2,
         search_bar_height - margins * 2,
-        Settings::Instance::grab().as_input_background_color());
+        Settings::nil.as_input_background_color());
 
-    fl_color(Settings::Instance::grab().as_foreground_color());
-    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
 
-    int available_length = (w() - margins * 4) / fl_width("Q");
-    int draw_length = cs.top().prefix.length();
-    if (draw_length > available_length)
-        draw_length = available_length;
+    int const line_height = Settings::nil.as_line_height();
 
-    if (cs.count() > 0)
+    if (cs.count() > 1)
     {
-        fl_draw(
-            cs.top().prefix.c_str(),
-            draw_length,
-            x() + margins + margins,
-            y() + margins + Settings::Instance::grab().as_line_height()
-        );
+        fl_color(FL_BLACK);
+
+        int s_len{(int) cs.top().prefix.size()};
+        char const * s = cs.top().prefix.c_str();
+        double const width_of_single_char = fl_width("Q");
+        int total_chars_written{0};
+        int chars_to_write{0};
+        int const max_chars_to_write = (int) ((w() - margins * 3) / width_of_single_char);
+        int line{1};
+
+        search_bar_height = single_line_search_bar_height;
+        if (total_chars_written < s_len)
+            search_bar_height -= line_height;
+
+        while (total_chars_written < s_len)
+        {
+            chars_to_write = s_len - total_chars_written;
+            if (chars_to_write > max_chars_to_write)
+                chars_to_write = max_chars_to_write;
+
+            fl_draw(s, chars_to_write, x() + margins + margins, y() + margins + line_height * line++);
+            total_chars_written += chars_to_write;
+            s += chars_to_write;
+            search_bar_height += line_height;
+        }
+
+        if (search_bar_height != prev_search_bar_height)
+            draw_search_bar();
     }
 }
 
@@ -372,34 +456,37 @@ void TermViewer::draw_search_bar()
 
 void TermViewer::draw_completion()
 {
-    CompletionStack & cs = Settings::Instance::grab().as_mutable_completion_stack();
+    CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+
+    int const wsh = term_stack_height();
 
     // clear
     fl_rectf(
         x(),
         y() + search_bar_height,
         w(),
-        h() - search_bar_height, Settings::Instance::grab().as_background_color()
+        h() - search_bar_height - wsh - button_bar_height,
+        Settings::nil.as_background_color()
     );
 
-    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
 
     if (cs.count() > 1)
     {
-        std::vector<int> const & words = cs.top().standard_completion;
+        std::vector<int> const & sc = cs.top().standard_completion;
 
-        if (display_start >= (int) words.size())
-            display_start = (int) words.size() - 1;
-        if (display_start < 0)
-            display_start = 0;
+        if (cs.top().display_start >= (int) sc.size())
+            cs.top().display_start = (int) sc.size() - 1;
+        if (cs.top().display_start < 0)
+            cs.top().display_start = 0;
 
-        int display_count = (int) words.size() - display_start;
+        int display_count = (int) sc.size() - cs.top().display_start;
         int const available_width = (int) ((w() - margins * 3) / fl_width("Q"));
         int const indent_char_count = 3;
         int const indent_x = fl_width("q") * indent_char_count;
-        int const line_height = Settings::Instance::grab().as_line_height();
+        int const line_height = Settings::nil.as_line_height();
         int available_lines =
-                (h() - search_bar_height - margins * 2) / line_height;
+                (h() - search_bar_height - margins * 2 - wsh - button_bar_height) / line_height;
 
         int const xp = x() + margins * 2;
         int yp = y() + search_bar_height + margins * 2 + line_height / 2;
@@ -407,8 +494,9 @@ void TermViewer::draw_completion()
         for (int i = 0; i < display_count && i < available_lines; ++i)
         {
             int word_len{0};
-            char const * word = matchmaker::at(words[display_start + i], &word_len);
-            fl_color(Settings::Instance::grab().as_term_colors_vect()[words[display_start + i]]);
+            char const * word = matchmaker::at(sc[cs.top().display_start + i], &word_len);
+            fl_color(Settings::nil.as_term_colors().at(Viewer::TermViewer::grab())[
+                    sc[cs.top().display_start + i]]);
 
             int total_chars_written{0};
             int cur_chars_to_write{0};
@@ -434,7 +522,7 @@ void TermViewer::draw_completion()
                             ++cur_chars_to_write;
                     }
 
-                    if (yp + line_height < y() + h())
+                    if (yp + line_height < y() + h() - button_bar_height - wsh)
                         fl_draw(word, cur_chars_to_write, xp, yp);
 
                     display_locations[i].first = i;
@@ -457,11 +545,11 @@ void TermViewer::draw_completion()
                             ++cur_chars_to_write;
                     }
 
-                    if (yp + line_height < y() + h())
+                    if (yp + line_height < y() + h() - button_bar_height - wsh)
                         fl_draw(word, cur_chars_to_write, xp + indent_x, yp);
 
                     Fl_Color prev_color = fl_color();
-                    fl_color(Settings::Instance::grab().as_wrap_indicator_color());
+                    fl_color(Settings::nil.as_wrap_indicator_color());
 
                     int const x0 = xp + indent_x / 5;
                     int const y0 = yp - line_height * 4 / 7;
@@ -472,7 +560,7 @@ void TermViewer::draw_completion()
                     int const x2 = xp + indent_x - indent_x * 2 / 5;
                     int const y2 = y1;
 
-                    if (y2 + line_height < y() + h())
+                    if (y2 + line_height < y() + h() - button_bar_height - wsh)
                         fl_line(x0, y0, x1, y1, x2, y2);
 
                     fl_color(prev_color);
@@ -489,3 +577,99 @@ void TermViewer::draw_completion()
         }
     }
 }
+
+
+
+void TermViewer::draw_word_stack()
+{
+    TermStack const & ts = Data::nil.as_term_stack();
+
+    if (ts.size() < 2)
+        return;
+
+    int wsh = term_stack_height();
+
+    // clear
+    fl_rectf(
+        x(),
+        y() + h() - button_bar_height - wsh,
+        w(),
+        wsh,
+        Settings::nil.as_background_color()
+    );
+
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
+    fl_color(Settings::nil.as_term_stack_color());
+
+    if (ts_display_start >= (int) ts.size() - 1)
+        ts_display_start = (int) ts.size() - 2;
+    if (ts_display_start < 0)
+        ts_display_start = 0;
+
+    int const line_height = Settings::nil.as_line_height();
+    int const available_lines = wsh / line_height;
+    int display_count = available_lines;
+    int const available_length = (int) ((w() - margins * 3) / fl_width("Q"));
+
+    int const xp = x() + margins * 2;
+    int yp = y() + h() - button_bar_height - wsh + line_height / 2 + fl_descent();
+    int draw_length = 0;
+    int lines_drawn = 0;
+    for (size_t i = ts.size() - ts_display_start; lines_drawn < display_count && i-- > 1;)
+    {
+        char const * s = matchmaker::at(ts[i].selected_term, &draw_length);
+
+        if (draw_length > available_length)
+        {
+            draw_length = available_length - 3;
+            fl_draw("...", xp + draw_length * fl_width("q"), yp);
+        }
+
+        fl_draw(s, draw_length, xp, yp);
+        yp += line_height;
+        ++lines_drawn;
+    }
+}
+
+
+
+void TermViewer::draw_button_bar()
+{
+    // clear
+    fl_rectf(
+        x(),
+        y() + h() - button_bar_height,
+        w(),
+        button_bar_height,
+        Settings::nil.as_background_color()
+    );
+
+    fl_font(MONO_FONT, Settings::nil.as_font_size() + 2);
+    fl_color(fl_darker(Settings::nil.as_term_stack_color()));
+
+    fl_draw(
+        "Del",
+        x() + w() * (button_count / 2) / button_count,
+        y() + h() - button_bar_height,
+        w() / button_count,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+}
+
+
+Fl_Color TermViewer::foreground_color() const
+{
+    return Settings::nil.as_tv_foreground_color();
+}
+
+
+
+Viewer::Type TermViewer::type() const
+{
+    return Viewer::TermViewer::grab();
+}
+
+

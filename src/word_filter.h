@@ -4,7 +4,7 @@
 
 #include <matchable/matchable.h>
 
-#include "matchmaker.h"
+#include <matchmaker.h>
 
 
 using filter_func = std::function<bool (int)>;

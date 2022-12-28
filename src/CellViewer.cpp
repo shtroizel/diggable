@@ -10,9 +10,11 @@
 #include <FL/Fl_Box.H>
 #include <FL/Enumerations.H>
 
-#include <matchmaker.h>
+#include <Data.h>
 #include <Settings.h>
 #include <TermViewer.h>
+#include <Viewer.h>
+#include <matchmaker.h>
 
 
 
@@ -22,12 +24,12 @@ float const HOVER_BOX_MARGIN_SIZE{2};
 
 
 CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
-    : Fl_Widget{x, y, w, h, nullptr}
+    : AbstractViewer{x, y, w, h}
     , scrollbar_location{sl}
 {
-    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
-    Settings::Instance::grab().set_line_height(
-            (int) (fl_size() * Settings::Instance::grab().as_line_height_factor()));
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
+    Settings::nil.set_line_height(
+            (int) (fl_size() * Settings::nil.as_line_height_factor()));
 
     bool ok;
     index_of_space = matchmaker::lookup(" ", &ok);
@@ -62,7 +64,7 @@ void CellViewer::draw()
                     hover_box[1],
                     hover_box[2] + HOVER_BOX_MARGIN_SIZE * 2,
                     hover_box[3],
-                    Settings::Instance::grab().as_hover_color());
+                    Settings::nil.as_hover_color());
     }
 }
 
@@ -71,7 +73,7 @@ void CellViewer::draw()
 void CellViewer::draw_scrollbar()
 {
     // clear
-    fl_rectf(scrollbar_x, y(), scrollbar_width, h(), Settings::Instance::grab().as_background_color());
+    fl_rectf(scrollbar_x, y(), scrollbar_width, h(), Settings::nil.as_background_color());
 
     // only draw scrollbar when needed
     if (max_scroll_offset <= 0)
@@ -88,14 +90,14 @@ void CellViewer::draw_scrollbar()
         y(),
         scrollbar_width,
         h(),
-        Settings::Instance::grab().as_foreground_color()
+        foreground_color()
     );
 
     // be extra carefull to avoid division by 0
     if (max_scroll_offset <= 0)
         scroller_top = 0;
     else
-        scroller_top = y() + scroll_offset * (h() - scroller_height) / max_scroll_offset;
+        scroller_top = y() + scroll_offset() * (h() - scroller_height) / max_scroll_offset;
 
     // draw scroller (within scrollbar)
     fl_draw_box(FL_FLAT_BOX,
@@ -103,7 +105,7 @@ void CellViewer::draw_scrollbar()
                 scroller_top,
                 scrollbar_width,
                 scroller_height,
-                Settings::Instance::grab().as_scroller_color());
+                fl_darker(Settings::nil.as_background_color()));
 }
 
 
@@ -116,11 +118,11 @@ void CellViewer::draw_scrollbar_labels()
         y(),
         scrollbar_label_width,
         h(),
-        Settings::Instance::grab().as_background_color()
+        Settings::nil.as_background_color()
     );
 
-    fl_color(Settings::Instance::grab().as_foreground_color());
-    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size() - 3);
+    fl_color(foreground_color());
+    fl_font(MONO_FONT, Settings::nil.as_font_size() - 3);
 
     if (scrollbar_labels.size() == 0)
         return;
@@ -135,7 +137,7 @@ void CellViewer::draw_scrollbar_labels()
     }
 
     int labels_printed = 0;
-    int const line_height = Settings::Instance::grab().as_line_height();
+    int const line_height = Settings::nil.as_line_height();
     int const min_gap = line_height * 2;
     int max_labels_to_print = 17;
     if (h() / min_gap < max_labels_to_print)
@@ -221,17 +223,20 @@ int CellViewer::handle(int event)
             reposition();
             offsets_dirty = true;
             redraw();
-            if (scroll_offset > max_scroll_offset)
+            if (scroll_offset() > max_scroll_offset)
             {
-                scroll_offset = max_scroll_offset;
+                scroll_offset() = max_scroll_offset;
                 redraw();
             }
             return 0;
         case FL_ENTER:
-            // std::cout << "Viewer::handle() --> FL_ENTER event!" << std::endl;
-            if (nullptr != term_viewer)
-                term_viewer->leave();
-            return 1;
+            {
+                // std::cout << "Viewer::handle() --> FL_ENTER event!" << std::endl;
+                TermViewer * tv = Data::nil.as_term_viewer();
+                if (nullptr != tv)
+                    tv->leave();
+                return 1;
+            }
         case FL_PUSH:
             {
                 int const ex = Fl::event_x();
@@ -246,9 +251,9 @@ int CellViewer::handle(int event)
                     return 1;
                 }
 
-                int const ty = (Fl::event_y() - y()) / Settings::Instance::grab().as_line_height();
+                int const ty = (Fl::event_y() - y()) / Settings::nil.as_line_height();
                 int term{-1};
-                for (int tx = 0; tx < MAX_TERMS; ++tx)
+                for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
                 {
                     Cell & t = cells[ty][tx];
                     term = t.term;
@@ -278,27 +283,32 @@ int CellViewer::handle(int event)
                             term = t.ancestors[0];
                         }
 
-                        std::vector<Fl_Color> & term_colors =
-                                Settings::Instance::grab().as_mutable_term_colors_vect();
+                        // std::vector<Fl_Color> & term_colors =
+                        //         Settings::nil.as_mutable_term_colors_vect();
+                        //
+                        // if (term_colors[term] == Settings::nil.as_foreground_color())
+                        //     term_colors[term] = Settings::nil.as_highlight_color();
+                        // else
+                        //     term_colors[term] = Settings::nil.as_foreground_color();
+                        //
+                        // // deselect previous term
+                        // int const prev_term = Settings::nil.as_prev_selected_term();
+                        // if (-1 != prev_term && prev_term != term)
+                        // {
+                        //     term_colors[Settings::nil.as_selected_term()] =
+                        //             Settings::nil.as_foreground_color();
+                        // }
+                        //
+                        // // update selected term
+                        // Settings::nil.set_selected_term(term);
+                        //
+                        // on_selected_term_changed(cells[ty][tx], prev_term, term);
 
-                        if (term_colors[term] == Settings::Instance::grab().as_foreground_color())
-                            term_colors[term] = Settings::Instance::grab().as_highlight_color();
-                        else
-                            term_colors[term] = Settings::Instance::grab().as_foreground_color();
 
-                        // deselect previous term
-                        if (-1 != Settings::Instance::grab().as_selected_term() &&
-                                Settings::Instance::grab().as_selected_term() != term)
-                            term_colors[Settings::Instance::grab().as_selected_term()] =
-                                    Settings::Instance::grab().as_foreground_color();
+                        Data::term_clicked(term, cells[ty][tx].chapter, type());
 
-                        // update selected term
-                        Settings::Instance::grab().set_selected_term(term);
-
-                        on_selected_term_changed(cells[ty][tx]);
-
-                        redraw();
-                        break;
+                        // redraw();
+                        return 1;
                     }
                 }
                 return 1;
@@ -308,7 +318,7 @@ int CellViewer::handle(int event)
             {
                 int const ex = Fl::event_x();
                 // int const ey = Fl::event_y();
-                int const ty = (Fl::event_y() - y()) / Settings::Instance::grab().as_line_height();
+                int const ty = (Fl::event_y() - y()) / Settings::nil.as_line_height();
                 int start{-1};
                 int end{-1};
                 int top{cells[ty][0].top};
@@ -316,7 +326,7 @@ int CellViewer::handle(int event)
                 int txi{-1};
                 int height{0};
                 int extra_height{0};
-                for (int tx = 0; tx < MAX_TERMS; ++tx)
+                for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
                 {
                     Cell & t = cells[ty][tx];
 
@@ -372,7 +382,7 @@ int CellViewer::handle(int event)
                                         }
 
                                         py = ty - 1;
-                                        px = MAX_TERMS - 1;
+                                        px = MAX_CELLS_PER_LINE - 1;
                                         while (px > 0 && cells[py][px].term == -1)
                                             --px;
 
@@ -384,7 +394,7 @@ int CellViewer::handle(int event)
                                     {
                                         ny = ty;
 
-                                        if (tx < MAX_TERMS - 1 && cells[ty][tx + 1].term != -1)
+                                        if (tx < MAX_CELLS_PER_LINE - 1 && cells[ty][tx + 1].term != -1)
                                         {
                                             nx = tx + 1;
                                             return true;
@@ -436,7 +446,7 @@ int CellViewer::handle(int event)
 
                                     if (top > cells[tyi][txi].top)
                                     {
-                                        // extra_height += (ty - tyi) * Settings::Instance::grab().as_line_height();
+                                        // extra_height += (ty - tyi) * Settings::nil.as_line_height();
                                         extra_height += (top - cells[tyi][txi].top);
                                         top = cells[tyi][txi].top;
                                     }
@@ -531,15 +541,15 @@ int CellViewer::handle(int event)
         case FL_MOUSEWHEEL:
             if (max_scroll_offset <= 0)
             {
-                scroll_offset = 0;
+                scroll_offset() = 0;
                 return 1;
             }
-            scroll_offset += Fl::event_dy() * Settings::Instance::grab().as_line_height() * lines_to_scroll_at_a_time;
-            if (scroll_offset < 0)
-                scroll_offset = 0;
-            else if (scroll_offset > max_scroll_offset)
-                scroll_offset = max_scroll_offset;
-            // std::cout << "scroll_offset: " << std::to_string(scroll_offset) << std::endl;
+            scroll_offset() += Fl::event_dy() * Settings::nil.as_line_height() * lines_to_scroll_at_a_time;
+            if (scroll_offset() < 0)
+                scroll_offset() = 0;
+            else if (scroll_offset() > max_scroll_offset)
+                scroll_offset() = max_scroll_offset;
+            // std::cout << "scroll_offset: " << std::to_string(scroll_offset()) << std::endl;
             redraw();
             return 1;
 
@@ -569,10 +579,10 @@ void CellViewer::scroll_to_y(int ey)
     }
     float dmax = h();
     float loc = ey / dmax;
-    int const line_height = Settings::Instance::grab().as_line_height();
-    scroll_offset = (((int) (loc * max_scroll_offset)) / line_height) * line_height;
-    if (scroll_offset > max_scroll_offset)
-        scroll_offset = max_scroll_offset;
+    int const line_height = Settings::nil.as_line_height();
+    scroll_offset() = (((int) (loc * max_scroll_offset)) / line_height) * line_height;
+    if (scroll_offset() > max_scroll_offset)
+        scroll_offset() = max_scroll_offset;
 
     redraw();
 }
@@ -587,13 +597,6 @@ void CellViewer::leave()
 
 
 
-void CellViewer::set_term_viewer(TermViewer * l)
-{
-    term_viewer = l;
-}
-
-
-
 void CellViewer::scroll_to_offset(int offset)
 {
     if (offset < 0 || offset >= (int) scroll_offsets_by_chapter.size())
@@ -603,7 +606,7 @@ void CellViewer::scroll_to_offset(int offset)
         return;
     }
 
-    scroll_offset = scroll_offsets_by_chapter[offset];
+    scroll_offset() = scroll_offsets_by_chapter[offset];
     redraw();
 }
 
@@ -625,21 +628,21 @@ void CellViewer::draw_content()
         y(),
         content_width + (content_margin * 2),
         h(),
-        Settings::Instance::grab().as_background_color()
+        Settings::nil.as_background_color()
     );
 
-    fl_color(Settings::Instance::grab().as_foreground_color());
-    fl_font(MONO_FONT, Settings::Instance::grab().as_font_size());
+    fl_color(foreground_color());
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
 
     for (int l = 0; l < MAX_LINES; ++l)
-        for (int t = 0; t < MAX_TERMS; ++t)
+        for (int t = 0; t < MAX_CELLS_PER_LINE; ++t)
             cells[l][t].reset();
 
     bool prev_term_visible{false};
     bool term_visible{false};
     int xi{0};
     int xp{content_x};
-    int const line_height = Settings::Instance::grab().as_line_height();
+    int const line_height = Settings::nil.as_line_height();
     int yp{y() + line_height};
     int initial_yp{yp};
     int ch_i = -1;
@@ -665,7 +668,7 @@ void CellViewer::draw_content()
         {
             int i = (int) scroll_offsets_by_chapter.size();
             for (; i-- > 0;)
-                if (scroll_offsets_by_chapter[i] - scroll_offset < 0)
+                if (scroll_offsets_by_chapter[i] - scroll_offset() < 0)
                     break;
 
             start_ch_ii = i;
@@ -686,31 +689,31 @@ void CellViewer::draw_content()
             append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1, xp, yp, xi, term_visible);
             if (!prev_term_visible && term_visible)
             {
-                first_visible_chapter = ch_i;
+                // first_visible_chapter = ch_i;
                 prev_term_visible = true;
             }
-            if (!offsets_dirty && yp + line_height - scroll_offset > h())
+            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                 return;
         }
         yp += line_height;
         xp = content_x;
         xi = 0;
 
-        if (!offsets_dirty && yp + line_height - scroll_offset > h())
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
             return;
 
         matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
         for (int i = 0; i < term_count; ++i)
         {
             append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1, xp, yp, xi, term_visible);
-            if (!offsets_dirty && yp + line_height - scroll_offset > h())
+            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                 return;
         }
 
         yp += line_height * 2;
         xp = content_x;
         xi = 0;
-        if (!offsets_dirty && yp + line_height - scroll_offset > h())
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
             return;
 
         int const p_count = matchmaker::paragraph_count(0, ch_i);
@@ -730,7 +733,7 @@ void CellViewer::draw_content()
                                         &ancestors, &ancestor_count, &index_within_first_ancestor);
                 append_term(term, 0, ch_i, p_i, ancestors, ancestor_count,
                             index_within_first_ancestor, xp, yp, xi, term_visible);
-                if (!offsets_dirty && yp + line_height - scroll_offset > h())
+                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
             yp += line_height;
@@ -741,7 +744,7 @@ void CellViewer::draw_content()
         yp += line_height * 3;
         xp = content_x;
         xi = 0;
-        if (!offsets_dirty && yp + line_height - scroll_offset > h())
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
             return;
     }
     if (offsets_dirty)
@@ -776,12 +779,12 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
     int s_len{0};
     char const * s = matchmaker::at(term, &s_len);
     int s_width = fl_width(" ") * s_len;
-    int const line_height = Settings::Instance::grab().as_line_height();
+    int const line_height = Settings::nil.as_line_height();
 
     // apply color from term or from ancestors if term's color is the foreground_color
-    Fl_Color draw_color = Settings::Instance::grab().as_term_colors_vect()[term];
-    for (int i = 0; i < ancestor_count && draw_color == Settings::Instance::grab().as_foreground_color(); ++i)
-        draw_color = Settings::Instance::grab().as_term_colors_vect()[ancestors[i]];
+    Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
+    for (int i = 0; i < ancestor_count && draw_color == foreground_color(); ++i)
+        draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
 
     int const available_width = (int) (content_width) / fl_width("Q");
 
@@ -804,7 +807,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
 
             int const indent_char_count = 3;
             int const indent_x = fl_width("q") * indent_char_count;
-            int const line_height = Settings::Instance::grab().as_line_height();
+            int const line_height = Settings::nil.as_line_height();
             int total_chars_written{0};
             int cur_chars_to_write{0};
             int cur_chars_to_write_saved{0};
@@ -819,7 +822,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                 xi = 0;
 
                 cur_chars_to_write = s_len - total_chars_written;
-                int yi = (yp - line_height - scroll_offset) / line_height;
+                int yi = (yp - line_height - scroll_offset()) / line_height;
                 if (yi < 0)
                     yi = 0;
 
@@ -845,7 +848,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                     if (!offsets_dirty)
                     {
                         fl_color(draw_color);
-                        fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset + fl_size());
+                        fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset() + fl_size());
                     }
 
                     if (yi < MAX_LINES)
@@ -855,7 +858,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                         cells[yi][xi].ancestor_count = ancestor_count;
                         cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
                         cells[yi][xi].start = xp;
-                        top = yp - scroll_offset - line_height;
+                        top = yp - scroll_offset() - line_height;
                         cells[yi][xi].top = top;
                         cells[yi][xi].book = book;
                         cells[yi][xi].chapter = chapter;
@@ -896,7 +899,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                     if (!offsets_dirty)
                     {
                         fl_color(draw_color);
-                        int typ = yp - line_height - scroll_offset + fl_size();
+                        int typ = yp - line_height - scroll_offset() + fl_size();
                         fl_draw(s, cur_chars_to_write, xp + indent_x, typ);
 
                         int const x0 = xp + indent_x / 5;
@@ -909,7 +912,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                         int const y2 = y1;
 
 
-                        fl_color(Settings::Instance::grab().as_wrap_indicator_color());
+                        fl_color(Settings::nil.as_wrap_indicator_color());
                         fl_line(x0, y0, x1, y1, x2, y2);
                     }
 
@@ -952,7 +955,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
         }
     }
 
-    if (yp >= scroll_offset)
+    if (yp >= scroll_offset())
     {
         if (!offsets_dirty)
         {
@@ -964,9 +967,9 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
             }
 
             fl_color(draw_color);
-            fl_draw(s, draw_len, xp, yp - line_height - scroll_offset + fl_size());
+            fl_draw(s, draw_len, xp, yp - line_height - scroll_offset() + fl_size());
         }
-        int yi = (yp - line_height - scroll_offset) / line_height;
+        int yi = (yp - line_height - scroll_offset()) / line_height;
         if (yi < 0)
             yi = 0;
 
@@ -977,7 +980,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
             cells[yi][xi].ancestor_count = ancestor_count;
             cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
             cells[yi][xi].start = xp;
-            cells[yi][xi].top = yp - scroll_offset - line_height;
+            cells[yi][xi].top = yp - scroll_offset() - line_height;
             cells[yi][xi].height = line_height;
             cells[yi][xi].book = book;
             cells[yi][xi].chapter = chapter;

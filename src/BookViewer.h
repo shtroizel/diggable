@@ -6,6 +6,7 @@
 
 
 
+MATCHABLE_FWD(Viewer)
 class LocationViewer;
 
 class BookViewer : public CellViewer
@@ -13,12 +14,10 @@ class BookViewer : public CellViewer
 public:
     BookViewer(int x, int y, int w, int h);
     ~BookViewer() noexcept;
-    void set_location_viewer(LocationViewer * l);
+    Viewer::Type type() const override;
+    Fl_Color foreground_color() const override;
 
 private:
-    void on_selected_term_changed(Cell const &) override;
     std::vector<int> const & chapters() override;
-
-private:
-    LocationViewer * location_viewer{nullptr};
+    int & scroll_offset() override;
 };
