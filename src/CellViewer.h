@@ -36,8 +36,8 @@ public:
 protected:
     void set_chapters(std::vector<int> const & chapters);
     void append_term(int term, int book, int chapter, int paragraph,
-                     int const * ancestors, int ancestor_count,
-                     int index_within_first_ancestor,
+                     int const * ancestors, int ancestor_count, int index_within_first_ancestor,
+                     Fl_Color draw_color,
                      int & xp, int & yp, int & xi, bool & term_visible);
 
     struct Cell
@@ -109,6 +109,11 @@ private:
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
     int index_of_space{-1};
+    int index_of_comma{-1};
+    bool mouse_down{false};
+    int mouse_start_y{0};
+    int mouse_start_x{0};
+    int start_scroll_offset{0};
 
     // (y position, label string)
     std::vector<std::pair<int, std::string>> scrollbar_labels;

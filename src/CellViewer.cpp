@@ -40,6 +40,14 @@ CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
         abort();
     }
 
+    index_of_comma = matchmaker::lookup(",", &ok);
+    if (!ok)
+    {
+        std::cout << "Viewer::Viewer() --> failed to find index of comma!" << std::endl;
+        index_of_comma = -1;
+        abort();
+    }
+
     reposition();
 }
 
@@ -240,6 +248,23 @@ int CellViewer::handle(int event)
         case FL_PUSH:
             {
                 int const ex = Fl::event_x();
+                int const ey = Fl::event_y();
+                mouse_down = true;
+                mouse_start_x = ex;
+                mouse_start_y = ey;
+                start_scroll_offset = scroll_offset();
+                // if (start_scroll_offset < 0)
+                // {
+                //     std::cout << "start_scroll_offset < 0     --> clamping!" << std::endl;
+                //     start_scroll_offset = 0;
+                // }
+                // else if (start_scroll_offset > max_scroll_offset)
+                // {
+                //     std::cout << "start_scroll_offset > " << max_scroll_offset << "     --> clamping!" << std::endl;
+                //     start_scroll_offset = max_scroll_offset;
+                // }
+
+
                 // std::cout << "y(): " << y() << std::endl;
                 // std::cout << "h(): " << h() << std::endl;
                 // std::cout << "max_scroll_offset: " << max_scroll_offset << std::endl;
@@ -251,66 +276,44 @@ int CellViewer::handle(int event)
                     return 1;
                 }
 
-                int const ty = (Fl::event_y() - y()) / Settings::nil.as_line_height();
-                int term{-1};
-                for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
-                {
-                    Cell & t = cells[ty][tx];
-                    term = t.term;
-
-                    if (ex > t.start && ex < t.end)
-                    {
-                        // activate parent term instead when over space between terms
-                        if (t.term == index_of_space && t.ancestor_count > 0)
-                        {
-                            // // but only offer phrases that appear at least twice,
-                            // // so get the location_count
-                            // int const * book_components = nullptr;
-                            // int const * chapter_components = nullptr;
-                            // int const * paragraph_components = nullptr;
-                            // int const * word_components = nullptr;
-                            // int location_count = 0;
-                            // matchmaker::locations(t.ancestors[0],
-                            //                       &book_components,
-                            //                       &chapter_components,
-                            //                       &paragraph_components,
-                            //                       &word_components,
-                            //                       &location_count);
-                            // if (location_count > 1)
-                            //     term = t.ancestors[0];
-                            // else
-                            //     return 1;
-                            term = t.ancestors[0];
-                        }
-
-                        // std::vector<Fl_Color> & term_colors =
-                        //         Settings::nil.as_mutable_term_colors_vect();
-                        //
-                        // if (term_colors[term] == Settings::nil.as_foreground_color())
-                        //     term_colors[term] = Settings::nil.as_highlight_color();
-                        // else
-                        //     term_colors[term] = Settings::nil.as_foreground_color();
-                        //
-                        // // deselect previous term
-                        // int const prev_term = Settings::nil.as_prev_selected_term();
-                        // if (-1 != prev_term && prev_term != term)
-                        // {
-                        //     term_colors[Settings::nil.as_selected_term()] =
-                        //             Settings::nil.as_foreground_color();
-                        // }
-                        //
-                        // // update selected term
-                        // Settings::nil.set_selected_term(term);
-                        //
-                        // on_selected_term_changed(cells[ty][tx], prev_term, term);
-
-
-                        Data::term_clicked(term, cells[ty][tx].chapter, type());
-
-                        // redraw();
-                        return 1;
-                    }
-                }
+                // int const ty = (ey - y()) / Settings::nil.as_line_height();
+                // int term{-1};
+                // for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                // {
+                //     Cell & t = cells[ty][tx];
+                //     term = t.term;
+                //
+                //     if (ex > t.start && ex < t.end)
+                //     {
+                //         // activate parent term instead when over space between terms
+                //         if (t.term == index_of_space && t.ancestor_count > 0)
+                //         {
+                //             // // but only offer phrases that appear at least twice,
+                //             // // so get the location_count
+                //             // int const * book_components = nullptr;
+                //             // int const * chapter_components = nullptr;
+                //             // int const * paragraph_components = nullptr;
+                //             // int const * word_components = nullptr;
+                //             // int location_count = 0;
+                //             // matchmaker::locations(t.ancestors[0],
+                //             //                       &book_components,
+                //             //                       &chapter_components,
+                //             //                       &paragraph_components,
+                //             //                       &word_components,
+                //             //                       &location_count);
+                //             // if (location_count > 1)
+                //             //     term = t.ancestors[0];
+                //             // else
+                //             //     return 1;
+                //             term = t.ancestors[0];
+                //         }
+                //
+                //         Data::term_clicked(term, type());
+                //
+                //         // redraw();
+                //         return 1;
+                //     }
+                // }
                 return 1;
             }
 
@@ -526,20 +529,124 @@ int CellViewer::handle(int event)
 
         case FL_DRAG:
             {
+                int dy = Fl::event_y() - mouse_start_y;
+
                 if (dragging_scroller)
                 {
                     scroll_to_y(Fl::event_y());
-                    redraw();
                 }
+                else
+                {
+                    if (mouse_down)
+                    {
+                        // force line boundary
+                        // int const line_height = Settings::nil.as_line_height();
+                        // scroll_offset() = start_scroll_offset - ((dy / line_height) * line_height);
+
+                        // or force line boundary on release instead (smooth)
+                        scroll_offset() = start_scroll_offset - dy;
+
+                        if (scroll_offset() < 0)
+                            scroll_offset() = 0;
+                        else if (scroll_offset() > max_scroll_offset)
+                            scroll_offset() = max_scroll_offset;
+                    }
+                }
+
+                redraw();
             }
             return 1;
 
         case FL_RELEASE:
+            if (!dragging_scroller)
+            {
+                int const ey = Fl::event_y();
+                int const ex = Fl::event_x();
+                int diff_y = ey - mouse_start_y;
+                if (diff_y < 0)
+                    diff_y *= -1;
+                int diff_x = ex - mouse_start_x;
+                if (diff_x < 0)
+                    diff_x *= -1;
+
+                int const max_diff = 17;
+
+                // if drag-scrolling then snap to line boundary
+                if (diff_y > max_diff || diff_x > max_diff)
+                {
+                    int const line_height = Settings::nil.as_line_height();
+                    scroll_offset() = (scroll_offset() / line_height) * line_height;
+                    if (scroll_offset() < 0)
+                        scroll_offset() = 0;
+                    else if (scroll_offset() > max_scroll_offset)
+                        scroll_offset() = max_scroll_offset;
+
+                    hover_box_visible = false;
+
+                    // enforce minimum scroll amount
+                    // int diff_scroll_offset = scroll_offset() - start_scroll_offset;
+                    // if (diff_scroll_offset < 0)
+                    //     diff_scroll_offset *= -1;
+                    // if (diff_scroll_offset < 3 * line_height)
+                    //     scroll_offset() = start_scroll_offset;
+                    redraw();
+                }
+                // otherwise process click
+                else
+                {
+                    std::cout << "click!" << std::endl;
+                // }
+
+                // if (diff_y <= max_diff && diff_x <= max_diff)
+                // {
+                //     std::cout << "click!" << std::endl;
+
+
+                    int const ty = (ey - y()) / Settings::nil.as_line_height();
+                    int term{-1};
+                    for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                    {
+                        Cell & t = cells[ty][tx];
+                        term = t.term;
+
+                        if (ex > t.start && ex < t.end)
+                        {
+                            // activate parent term instead when over space between terms
+                            if (t.term == index_of_space && t.ancestor_count > 0)
+                            {
+                                // // but only offer phrases that appear at least twice,
+                                // // so get the location_count
+                                // int const * book_components = nullptr;
+                                // int const * chapter_components = nullptr;
+                                // int const * paragraph_components = nullptr;
+                                // int const * word_components = nullptr;
+                                // int location_count = 0;
+                                // matchmaker::locations(t.ancestors[0],
+                                //                       &book_components,
+                                //                       &chapter_components,
+                                //                       &paragraph_components,
+                                //                       &word_components,
+                                //                       &location_count);
+                                // if (location_count > 1)
+                                //     term = t.ancestors[0];
+                                // else
+                                //     return 1;
+                                term = t.ancestors[0];
+                            }
+
+                            Data::term_clicked(term, type());
+
+                            return 1;
+                        }
+                    }
+                }
+            }
+            mouse_down = false;
             dragging_scroller = false;
             return 1;
 
         case FL_MOUSEWHEEL:
-            if (max_scroll_offset <= 0)
+            if (max_scroll_offset < 0)
             {
                 scroll_offset() = 0;
                 return 1;
@@ -686,7 +793,9 @@ void CellViewer::draw_content()
         matchmaker::chapter_title(0, ch_i, &terms, &term_count);
         for (int i = 0; i < term_count; ++i)
         {
-            append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1, xp, yp, xi, term_visible);
+            append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1,
+                        Settings::nil.as_chapter_title_color(),
+                        xp, yp, xi, term_visible);
             if (!prev_term_visible && term_visible)
             {
                 // first_visible_chapter = ch_i;
@@ -705,7 +814,17 @@ void CellViewer::draw_content()
         matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
         for (int i = 0; i < term_count; ++i)
         {
-            append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1, xp, yp, xi, term_visible);
+            if (terms[i] == index_of_comma)
+            {
+                yp += line_height;
+                xp = content_x;
+                xi = 0;
+                continue;
+            }
+
+            append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1,
+                        Settings::nil.as_chapter_subtitle_color(),
+                        xp, yp, xi, term_visible);
             if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                 return;
         }
@@ -731,8 +850,16 @@ void CellViewer::draw_content()
             {
                 term = matchmaker::word(0, ch_i, p_i, w_i,
                                         &ancestors, &ancestor_count, &index_within_first_ancestor);
-                append_term(term, 0, ch_i, p_i, ancestors, ancestor_count,
-                            index_within_first_ancestor, xp, yp, xi, term_visible);
+
+                // apply color from term or from ancestors if term's color is the foreground_color
+                Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
+                for (int i = 0; i < ancestor_count && draw_color == foreground_color(); ++i)
+                    draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
+
+                append_term(term, 0, ch_i, p_i,
+                            ancestors, ancestor_count, index_within_first_ancestor,
+                            draw_color,
+                            xp, yp, xi, term_visible);
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
@@ -772,19 +899,14 @@ void CellViewer::draw_content()
 
 
 void CellViewer::append_term(int term, int book, int chapter, int paragraph,
-                             int const * ancestors, int ancestor_count,
-                             int index_within_first_ancestor,
+                             int const * ancestors, int ancestor_count, int index_within_first_ancestor,
+                             Fl_Color draw_color,
                              int & xp, int & yp, int & xi, bool & term_visible)
 {
     int s_len{0};
     char const * s = matchmaker::at(term, &s_len);
     int s_width = fl_width(" ") * s_len;
     int const line_height = Settings::nil.as_line_height();
-
-    // apply color from term or from ancestors if term's color is the foreground_color
-    Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
-    for (int i = 0; i < ancestor_count && draw_color == foreground_color(); ++i)
-        draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
 
     int const available_width = (int) (content_width) / fl_width("Q");
 

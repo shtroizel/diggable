@@ -22,6 +22,9 @@
 int const MONO_FONT{4};
 int const BKSPC{65288};
 int const DELETE{65535};
+int const ENTER{65293};
+int const UP{65362};
+int const DOWN{65364};
 float const HOVER_BOX_MARGIN_SIZE{2};
 
 
@@ -89,6 +92,57 @@ int TermViewer::handle(int event)
                 // std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << Fl::event_key() << "'" << std::endl;
                 switch (Fl::event_key())
                 {
+                    case ENTER:
+                        {
+                            CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+                            std::vector<int> & c = cs.top().standard_completion;
+                            TermStack const & ts = Data::nil.as_term_stack();
+
+                            if (c.size() > 0)
+                            {
+                                int ds = cs.top().display_start;
+                                if (ds > (int) c.size() - 1)
+                                    ds = (int) c.size() - 1;
+                                else if (ds < 0)
+                                    ds = 0;
+
+                                int selected = ts.back().selected_term;
+                                if (selected == -1)
+                                {
+                                    Data::term_clicked(c[ds], Viewer::TermViewer::grab());
+                                }
+                                else
+                                {
+                                    std::string selected_as_string = matchmaker::at(selected, nullptr);
+                                    std::string first_result = matchmaker::at(c[ds], nullptr);
+                                    if (selected_as_string != first_result)
+                                        Data::term_clicked(c[ds], Viewer::TermViewer::grab());
+                                }
+                            }
+                        }
+                        break;
+
+                    case UP:
+                        {
+                            CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+                            cs.top().display_start -= 1;
+                            if (cs.top().display_start < 0)
+                                cs.top().display_start = 0;
+                            redraw();
+                        }
+                        break;
+
+                    case DOWN:
+                        {
+                            CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+                            std::vector<int> const & c = cs.top().standard_completion;
+                            cs.top().display_start += 1;
+                            if (cs.top().display_start > (int) c.size() - 1)
+                                cs.top().display_start = c.size() - 1;
+                            redraw();
+                        }
+                        break;
+
                     case BKSPC:
                         cs.pop();
                         // if (nullptr != book_viewer)
@@ -192,7 +246,7 @@ int TermViewer::handle(int event)
                     // on_selected_term_changed();
 
 
-                    Data::term_clicked(c[ci] + cs.top().display_start, -1, Viewer::TermViewer::grab());
+                    Data::term_clicked(c[ci] + cs.top().display_start, Viewer::TermViewer::grab());
 
                     redraw();
                 }
@@ -209,7 +263,7 @@ int TermViewer::handle(int event)
                     if (i > 0 && i < (int) ts.size() - 1)
                     {
                         std::cout << "term stack clicked!" << std::endl;
-                        Data::term_clicked(ts[i].selected_term, -1, Viewer::BookViewer::grab());
+                        Data::term_clicked(ts[i].selected_term, Viewer::BookViewer::grab());
                         redraw();
                     }
                     else
@@ -339,6 +393,7 @@ int TermViewer::handle(int event)
             return 1;
         case FL_MOUSEWHEEL:
             {
+                // scrolling within the completion area
                 if (Fl::event_y() < y() + h() - button_bar_height - term_stack_height())
                 {
                     Data::nil.as_mutable_completion_stack().top().display_start +=
@@ -346,6 +401,8 @@ int TermViewer::handle(int event)
                     redraw();
                     return 1;
                 }
+
+                // scrolling within the term stack area
                 else if (Fl::event_y() < y() + h() - button_bar_height)
                 {
                     ts_display_start += Fl::event_dy();

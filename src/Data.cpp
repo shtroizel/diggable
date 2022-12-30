@@ -184,10 +184,8 @@ namespace Data
 
 
 
-    void term_clicked(int term, int chapter, Viewer::Type caller)
+    void term_clicked(int term, Viewer::Type caller)
     {
-        (void) chapter;
-
         std::cout << "clicked on term: " << term << std::endl;
         auto & term_colors = Settings::nil.as_mutable_term_colors();
 
