@@ -23,6 +23,7 @@ int const MONO_FONT{4};
 int const BKSPC{65288};
 int const DELETE{65535};
 int const ENTER{65293};
+int const ESC{65307};
 int const UP{65362};
 int const DOWN{65364};
 float const HOVER_BOX_MARGIN_SIZE{2};
@@ -48,7 +49,6 @@ TermViewer::~TermViewer() noexcept
 
 void TermViewer::draw()
 {
-    // refresh_search_bar_height();
     // fl_rectf(x(), y(), w(), h(), Settings::nil.as_background_color());
 
     draw_search_bar();
@@ -92,6 +92,10 @@ int TermViewer::handle(int event)
                 // std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << Fl::event_key() << "'" << std::endl;
                 switch (Fl::event_key())
                 {
+                    case ESC:
+                        Data::nil.as_mutable_completion_stack().clear_all();
+                        break;
+
                     case ENTER:
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
@@ -272,15 +276,86 @@ int TermViewer::handle(int event)
                     }
 
                 }
+                else if ( // left button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + margins &&
+                    ex < x() + w() / button_count - margins
+                )
+                {
+                    if (nullptr != Data::nil.as_book_viewer())
+                    {
+                        BookViewer * bv = Data::nil.as_book_viewer();
+                        bv->use_by_month_order(!bv->using_by_month_order());
+                        bv->redraw();
+                    }
+                }
+                else if ( // middle left button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + w() * ((button_count / 2) - 1) / button_count + margins &&
+                    ex < x() + w() * (button_count / 2) / button_count - margins
+                )
+                {
+                    Data::nil.as_mutable_completion_stack().clear_all();
+                    redraw();
+                }
                 else if ( // middle button
                     ey > y() + h() - button_bar_height &&
-                    ex > x() + w() * (button_count / 2) / button_count &&
-                    ex < x() + w() * ((button_count / 2) + 1) / button_count
+                    ex > x() + w() * (button_count / 2) / button_count + margins &&
+                    ex < x() + w() * ((button_count / 2) + 1) / button_count - margins
                 )
                 {
                     if (Data::pop_term_stack())
                     {
                         redraw();
+                    }
+                }
+                else if ( // middle right button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + w() * ((button_count / 2) + 1) / button_count + margins &&
+                    ex < x() + w() * ((button_count / 2) + 2) / button_count - margins
+                )
+                {
+                    int fs = Settings::nil.as_font_size() + 1;
+                    if (fs > Settings::nil.as_max_font_size())
+                        fs = Settings::nil.as_max_font_size();
+                    Settings::nil.set_font_size(fs);
+                    fl_font(MONO_FONT, fs);
+                    Settings::nil.set_line_height(
+                            (int) (fl_size() * Settings::nil.as_line_height_factor()));
+                    if (nullptr != Data::nil.as_book_viewer())
+                    {
+                        Data::nil.as_book_viewer()->mark_dirty();
+                        Data::nil.as_book_viewer()->redraw();
+                    }
+                    if (nullptr != Data::nil.as_location_viewer())
+                    {
+                        Data::nil.as_location_viewer()->mark_dirty();
+                        Data::nil.as_location_viewer()->redraw();
+                    }
+                }
+                else if ( // right button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + w() * ((button_count / 2) + 2) / button_count + margins &&
+                    ex < x() + w() - margins
+                )
+                {
+                    int fs = Settings::nil.as_font_size() - 1;
+                    if (fs < Settings::nil.as_min_font_size())
+                        fs = Settings::nil.as_min_font_size();
+                    Settings::nil.set_font_size(fs);
+                    fl_font(MONO_FONT, fs);
+                    Settings::nil.set_line_height(
+                            (int) (fl_size() * Settings::nil.as_line_height_factor()));
+                    redraw();
+                    if (nullptr != Data::nil.as_book_viewer())
+                    {
+                        Data::nil.as_book_viewer()->mark_dirty();
+                        Data::nil.as_book_viewer()->redraw();
+                    }
+                    if (nullptr != Data::nil.as_location_viewer())
+                    {
+                        Data::nil.as_location_viewer()->mark_dirty();
+                        Data::nil.as_location_viewer()->redraw();
                     }
                 }
             }
@@ -292,12 +367,13 @@ int TermViewer::handle(int event)
                 int const line_height = Settings::nil.as_line_height();
 
                 int const ey = Fl::event_y();
+                int const ex = Fl::event_x();
 
                 // std::cout << "cy: " << ci << "       c.size(): " << c.size() << std::endl;
 
                 int const tsh = term_stack_height();
 
-                if (
+                if ( // completion stack
                     cs.count() > 1 &&
                     ey > y() + search_bar_height &&
                     ey < y() + h() - button_bar_height - tsh - line_height - margins * 2
@@ -368,19 +444,71 @@ int TermViewer::handle(int event)
                         hover_box_visible = true;
                     }
                 }
-                else if ( // middle button
-                    ey > y() + h() - button_bar_height &&
-                    Fl::event_x() > x() + w() * (button_count / 2) / button_count &&
-                    Fl::event_x() < x() + w() * ((button_count / 2) + 1) / button_count
-                )
+
+                // one of the buttons
+                else if (ey > y() + h() - button_bar_height)
                 {
-                    hover_box[0] = x() + w() * (button_count / 2) / button_count;
-                    hover_box[1] = y() + h() - button_bar_height;
-                    hover_box[2] = w() / button_count;
-                    hover_box[3] = button_bar_height;
-                    hover_box_visible = true;
+                    if ( // left button
+                        ex > x() + margins &&
+                        ex < x() + w() / button_count - margins
+                    )
+                    {
+                        hover_box[0] = x() + margins;
+                        hover_box[1] = y() + h() - button_bar_height;
+                        hover_box[2] = w() / button_count - margins * 2;
+                        hover_box[3] = button_bar_height;
+                        hover_box_visible = true;
+                    }
+                    else if ( // middle left button
+                        ex > x() + w() * ((button_count / 2) - 1) / button_count + margins &&
+                        ex < x() + w() * (button_count / 2) / button_count - margins
+                    )
+                    {
+                        hover_box[0] = x() + w() * ((button_count / 2) - 1) / button_count + margins;
+                        hover_box[1] = y() + h() - button_bar_height;
+                        hover_box[2] = w() / button_count - margins * 2;
+                        hover_box[3] = button_bar_height;
+                        hover_box_visible = true;
+                    }
+                    else if ( // middle button
+                        ex > x() + w() * (button_count / 2) / button_count + margins &&
+                        ex < x() + w() * ((button_count / 2) + 1) / button_count - margins
+                    )
+                    {
+                        hover_box[0] = x() + w() * (button_count / 2) / button_count + margins;
+                        hover_box[1] = y() + h() - button_bar_height;
+                        hover_box[2] = w() / button_count - margins * 2;
+                        hover_box[3] = button_bar_height;
+                        hover_box_visible = true;
+                    }
+                    else if ( // middle right button
+                        ex > x() + w() * ((button_count / 2) + 1) / button_count + margins &&
+                        ex < x() + w() * ((button_count / 2) + 2) / button_count - margins
+                    )
+                    {
+                        hover_box[0] = x() + w() * ((button_count / 2) + 1) / button_count + margins;
+                        hover_box[1] = y() + h() - button_bar_height;
+                        hover_box[2] = w() / button_count - margins * 2;
+                        hover_box[3] = button_bar_height;
+                        hover_box_visible = true;
+                    }
+                    else if ( // right button
+                        ex > x() + w() * ((button_count / 2) + 2) / button_count + margins &&
+                        ex < x() + w() - margins
+                    )
+                    {
+                        hover_box[0] = x() + w() * ((button_count / 2) + 2) / button_count + margins;
+                        hover_box[1] = y() + h() - button_bar_height;
+                        hover_box[2] = w() / button_count - margins * 2;
+                        hover_box[3] = button_bar_height;
+                        hover_box_visible = true;
+                    }
                 }
             }
+            // std::cout << "    hover_box:";
+            // for (int i = 0; i < 4; ++i)
+            //     std::cout << " " << hover_box[i];
+            // std::cout << std::endl;
             redraw();
             return 1;
         case FL_DRAG:
@@ -429,20 +557,6 @@ int TermViewer::term_stack_height()
     if (ret > h() / 1.618 / 1.618)
         ret = h() / 1.618 / 1.618;
     return ret;
-}
-
-
-
-void TermViewer::set_book_viewer(BookViewer * bv)
-{
-    book_viewer = bv;
-}
-
-
-
-void TermViewer::set_location_viewer(LocationViewer * lv)
-{
-    location_viewer = lv;
 }
 
 
@@ -702,13 +816,61 @@ void TermViewer::draw_button_bar()
     );
 
     fl_font(MONO_FONT, Settings::nil.as_font_size() + 2);
-    fl_color(fl_darker(Settings::nil.as_term_stack_color()));
+
+    BookViewer * bv = Data::nil.as_book_viewer();
+    fl_color(type().as_foreground_color());
+    if (nullptr != bv && bv->using_by_month_order())
+        fl_color(Settings::nil.as_highlight_color());
 
     fl_draw(
-        "Del",
-        x() + w() * (button_count / 2) / button_count,
+        "Δ",
+        x() + margins,
         y() + h() - button_bar_height,
-        w() / button_count,
+        w() / button_count - margins * 2,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+
+    fl_color(FL_BLACK);
+    fl_draw(
+        "Esc",
+        x() + w() * ((button_count / 2) - 1) / button_count + margins,
+        y() + h() - button_bar_height,
+        w() / button_count - margins * 2,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+
+    fl_color(fl_darker(Settings::nil.as_term_stack_color()));
+    fl_draw(
+        "Del",
+        x() + w() * (button_count / 2) / button_count + margins,
+        y() + h() - button_bar_height,
+        w() / button_count - margins * 2,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+    fl_draw(
+        "+",
+        x() + w() * ((button_count / 2) + 1) / button_count + margins,
+        y() + h() - button_bar_height,
+        w() / button_count - margins * 2,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+    fl_draw(
+        "-",
+        x() + w() * ((button_count / 2) + 2) / button_count + margins,
+        y() + h() - button_bar_height,
+        w() / button_count - margins * 2,
         button_bar_height,
         FL_ALIGN_CENTER,
         nullptr,
@@ -717,16 +879,8 @@ void TermViewer::draw_button_bar()
 }
 
 
-Fl_Color TermViewer::foreground_color() const
-{
-    return Settings::nil.as_tv_foreground_color();
-}
-
-
 
 Viewer::Type TermViewer::type() const
 {
     return Viewer::TermViewer::grab();
 }
-
-

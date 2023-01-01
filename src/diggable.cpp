@@ -17,28 +17,17 @@ int main(int argc, char **argv)
     // disable dynamic loading and use dynamic linking instead
     matchmaker::set_library(nullptr);
 
-    // initialize term colors
+    // initialize term colors for each view
     {
         matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>> & term_colors =
                 Settings::nil.as_mutable_term_colors();
 
+        for (auto v : Viewer::variants())
         {
-            std::vector<Fl_Color> & tc = term_colors.mut_at(Viewer::BookViewer::grab());
+            std::vector<Fl_Color> & tc = term_colors.mut_at(v);
             tc.reserve(matchmaker::count());
             for (int i = 0; i < matchmaker::count(); ++i)
-                tc.push_back(Settings::nil.as_bv_foreground_color());
-        }
-        {
-            std::vector<Fl_Color> & tc = term_colors.mut_at(Viewer::TermViewer::grab());
-            tc.reserve(matchmaker::count());
-            for (int i = 0; i < matchmaker::count(); ++i)
-                tc.push_back(Settings::nil.as_tv_foreground_color());
-        }
-        {
-            std::vector<Fl_Color> & tc = term_colors.mut_at(Viewer::LocationViewer::grab());
-            tc.reserve(matchmaker::count());
-            for (int i = 0; i < matchmaker::count(); ++i)
-                tc.push_back(Settings::nil.as_lv_foreground_color());
+                tc.push_back(v.as_foreground_color());
         }
     }
 

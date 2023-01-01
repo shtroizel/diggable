@@ -53,7 +53,10 @@ void LocationViewer::locate()
     for (int i = 0; i < location_count; ++i)
     {
         if (chapter_indexes[i] != prev_chapter)
-            locations.push_back(chapter_indexes[i]);
+        {
+            std::string label = std::to_string(chapter_indexes[i] + 1);
+            locations.push_back({ chapter_indexes[i], label });
+        }
         prev_chapter = chapter_indexes[i];
     }
 
@@ -65,7 +68,7 @@ void LocationViewer::locate()
 
 
 
-std::vector<int> const & LocationViewer::chapters()
+std::vector<std::pair<int, std::string>> const & LocationViewer::chapters()
 {
     return locations;
 }
@@ -90,13 +93,6 @@ int & LocationViewer::scroll_offset()
 Viewer::Type LocationViewer::type() const
 {
     return Viewer::LocationViewer::grab();
-}
-
-
-
-Fl_Color LocationViewer::foreground_color() const
-{
-    return Settings::nil.as_lv_foreground_color();
 }
 
 

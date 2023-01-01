@@ -2,6 +2,11 @@
 
 #include <deque>
 
+#ifdef MATCHABLE_OMIT_BY_INDEX
+by index required!
+#endif
+
+
 #include <matchable/matchable.h>
 
 #include <CompletionStack.h>
@@ -24,7 +29,7 @@ class BookViewer;
 class TermViewer;
 class LocationViewer;
 
-    // int, term_locations,
+
 
 PROPERTYx5_MATCHABLE(
     BookViewer *, book_viewer,
@@ -37,7 +42,6 @@ PROPERTYx5_MATCHABLE(
 )
 
 
-
 MATCHABLE_FWD(Viewer)
 
 
@@ -46,5 +50,5 @@ namespace Data
     bool pop_term_stack();
     void push_term_stack(int term, Viewer::Type caller);
     void refresh_completion_stack();
-    void term_clicked(int term, int chapter, Viewer::Type caller);
+    void term_clicked(int term, Viewer::Type caller);
 }

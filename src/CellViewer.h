@@ -31,14 +31,26 @@ public:
     void scroll_to_offset(int offset);
     void scroll_to_y(int ey);
     void leave();
+    void mark_dirty() { offsets_dirty = true; }
 
 
 protected:
     void set_chapters(std::vector<int> const & chapters);
-    void append_term(int term, int book, int chapter, int paragraph,
-                     int const * ancestors, int ancestor_count, int index_within_first_ancestor,
-                     Fl_Color draw_color,
-                     int & xp, int & yp, int & xi, bool & term_visible);
+    void append_term(
+        int term,
+        int book,
+        int chapter,
+        int paragraph,
+        int const * ancestors,
+        int ancestor_count,
+        int index_within_first_ancestor,
+        bool within_chapter_subtitle,
+        Fl_Color draw_color,
+        int & xp,
+        int & yp,
+        int & xi,
+        bool & term_visible
+    );
 
     struct Cell
     {
@@ -59,6 +71,7 @@ protected:
             book = -1;
             chapter = -1;
             paragraph = -1;
+            within_chapter_subtitle = false;
         }
         int term{-1};
         int const * ancestors;
@@ -71,6 +84,7 @@ protected:
         int book;
         int chapter;
         int paragraph;
+        bool within_chapter_subtitle;
     };
     static int const MAX_LINES{216};  // maxium visible lines
     static int const MAX_CELLS_PER_LINE{210};  // maxium visible terms per line
@@ -81,7 +95,7 @@ protected:
 
 
 private:
-    virtual std::vector<int> const & chapters() = 0;
+    virtual std::vector<std::pair<int, std::string>> const & chapters() = 0;
     virtual int & scroll_offset() = 0;
 
     void draw_scrollbar();

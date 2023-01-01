@@ -98,7 +98,7 @@ void CellViewer::draw_scrollbar()
         y(),
         scrollbar_width,
         h(),
-        foreground_color()
+        type().as_foreground_color()
     );
 
     // be extra carefull to avoid division by 0
@@ -129,7 +129,7 @@ void CellViewer::draw_scrollbar_labels()
         Settings::nil.as_background_color()
     );
 
-    fl_color(foreground_color());
+    fl_color(type().as_foreground_color());
     fl_font(MONO_FONT, Settings::nil.as_font_size() - 3);
 
     if (scrollbar_labels.size() == 0)
@@ -594,7 +594,7 @@ int CellViewer::handle(int event)
                 // otherwise process click
                 else
                 {
-                    std::cout << "click!" << std::endl;
+                    // std::cout << "click!" << std::endl;
                 // }
 
                 // if (diff_y <= max_diff && diff_x <= max_diff)
@@ -606,13 +606,19 @@ int CellViewer::handle(int event)
                     int term{-1};
                     for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
                     {
-                        Cell & t = cells[ty][tx];
-                        term = t.term;
+                        Cell & c = cells[ty][tx];
 
-                        if (ex > t.start && ex < t.end)
+                        if (ex > c.start && ex < c.end)
                         {
+                            if (c.within_chapter_subtitle)
+                            {
+                                return 1;
+                            }
+
+                            term = c.term;
+
                             // activate parent term instead when over space between terms
-                            if (t.term == index_of_space && t.ancestor_count > 0)
+                            if (c.term == index_of_space && c.ancestor_count > 0)
                             {
                                 // // but only offer phrases that appear at least twice,
                                 // // so get the location_count
@@ -631,8 +637,10 @@ int CellViewer::handle(int event)
                                 //     term = t.ancestors[0];
                                 // else
                                 //     return 1;
-                                term = t.ancestors[0];
+                                term = c.ancestors[0];
                             }
+
+
 
                             Data::term_clicked(term, type());
 
@@ -738,14 +746,15 @@ void CellViewer::draw_content()
         Settings::nil.as_background_color()
     );
 
-    fl_color(foreground_color());
+    fl_color(type().as_foreground_color());
     fl_font(MONO_FONT, Settings::nil.as_font_size());
+    Settings::nil.set_line_height((int) (fl_size() * Settings::nil.as_line_height_factor()));
 
     for (int l = 0; l < MAX_LINES; ++l)
         for (int t = 0; t < MAX_CELLS_PER_LINE; ++t)
             cells[l][t].reset();
 
-    bool prev_term_visible{false};
+    // bool prev_term_visible{false};
     bool term_visible{false};
     int xi{0};
     int xp{content_x};
@@ -754,22 +763,21 @@ void CellViewer::draw_content()
     int initial_yp{yp};
     int ch_i = -1;
     int start_ch_ii = -1;
-    std::vector<int> const & ch = chapters();
+    std::vector<std::pair<int, std::string>> const & ch = chapters();
     for (size_t ch_ii = 0; ch_ii < chapters().size(); ++ch_ii)
     {
-        ch_i = ch[ch_ii];
+        ch_i = ch[ch_ii].first;
 
         if (offsets_dirty)
         {
             scroll_offsets_by_chapter.push_back(yp - initial_yp);
 
-
-            std::string label = std::to_string(ch_i + 1);
+            // std::string label = std::to_string(ch_i + 1);
 
             // initially store current yp
             // once final yp is known (end of function),
             // the y positions can be calculated from the current yp
-            scrollbar_labels.push_back({yp, label});
+            scrollbar_labels.push_back({yp, ch[ch_ii].second});
         }
         else if (start_ch_ii == -1) // skip ahead to just before visible (makes drawing much faster)
         {
@@ -785,50 +793,198 @@ void CellViewer::draw_content()
             ch_ii = start_ch_ii;
             yp = scroll_offsets_by_chapter[ch_ii];
             yp += line_height;
-            ch_i = ch[ch_ii];
+            ch_i = ch[ch_ii].first;
         }
 
         int const * terms{nullptr};
         int term_count{0};
         matchmaker::chapter_title(0, ch_i, &terms, &term_count);
-        for (int i = 0; i < term_count; ++i)
+        ScrollbarLocation::Type sl = scrollbar_location;
+
+        if (scrollbar_location == ScrollbarLocation::Left::grab())
         {
-            append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1,
-                        Settings::nil.as_chapter_title_color(),
-                        xp, yp, xi, term_visible);
-            if (!prev_term_visible && term_visible)
+            // title
+            fl_font(MONO_FONT, Settings::nil.as_chapter_font_size());
+            xp = content_x + 17;
+            for (int i = 0; i < term_count; ++i)
             {
-                // first_visible_chapter = ch_i;
-                prev_term_visible = true;
+                append_term(
+                    terms[i],
+                    0,
+                    ch_i,
+                    -1,
+                    nullptr,
+                    0,
+                    -1,
+                    false,
+                    type().as_chapter_title_color(),
+                    xp,
+                    yp,
+                    xi,
+                    term_visible
+                );
+                // if (!prev_term_visible && term_visible)
+                // {
+                //     // first_visible_chapter = ch_i;
+                //     prev_term_visible = true;
+                // }
+                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+                    return;
             }
+            fl_font(MONO_FONT, Settings::nil.as_font_size());
+
+            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+                return;
+
+            // to draw subtitle, first find widths of each line
+            int subtitle_width_1 = 0;
+            int subtitle_width_2 = 0;
+            {
+                int term_len = 0;
+                matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+                int i = 0;
+                for (; terms[i] != index_of_comma && i < term_count; ++i)
+                {
+                    matchmaker::at(terms[i], &term_len);
+                    subtitle_width_1 += term_len;
+                }
+                ++i;
+                for (; i < term_count; ++i)
+                {
+                    matchmaker::at(terms[i], &term_len);
+                    subtitle_width_2 += term_len;
+                }
+            }
+            subtitle_width_1 = (int) (subtitle_width_1 * fl_width('Q'));
+            subtitle_width_2 = (int) (subtitle_width_2 * fl_width('q'));
+
+            // yp += line_height;
+            xp = content_x + (content_width - subtitle_width_1);
+            // xi = 0;
+
+
+            matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+            for (int i = 0; i < term_count; ++i)
+            {
+                if (terms[i] == index_of_comma)
+                {
+                    yp += line_height;
+                    xp = content_x + (content_width - subtitle_width_2);
+                    xi = 0;
+                    continue;
+                }
+
+                append_term(
+                    terms[i],
+                    0,
+                    ch_i,
+                    -1,
+                    nullptr,
+                    0,
+                    -1,
+                    true,
+                    type().as_chapter_subtitle_color(),
+                    xp,
+                    yp,
+                    xi,
+                    term_visible
+                );
+                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+                    return;
+            }
+        }
+        else
+        {
+            if (scrollbar_location != ScrollbarLocation::Right::grab())
+            {
+                std::cout <<   "fallback scrollbar location: " << ScrollbarLocation::Right::grab()
+                          << "\n  unkown scrollbar location: " << scrollbar_location << std::endl;
+            }
+
+            // first draw subtitle
+            fl_font(MONO_FONT, Settings::nil.as_font_size());
+            int const yp_before_subtitle = yp;
+            xp = content_x;
+            xi = 0;
+            int xi_subtitle_line_1 = 0;
+            matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+            for (int i = 0; i < term_count; ++i)
+            {
+                if (terms[i] == index_of_comma)
+                {
+                    yp += line_height;
+                    xp = content_x;
+                    xi_subtitle_line_1 = xi;
+                    xi = 0;
+                    continue;
+                }
+
+                append_term(
+                    terms[i],
+                    0,
+                    ch_i,
+                    -1,
+                    nullptr,
+                    0,
+                    -1,
+                    true,
+                    type().as_chapter_subtitle_color(),
+                    xp,
+                    yp,
+                    xi,
+                    term_visible
+                );
+                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+                    return;
+            }
+
+            // then find width before drawing title
+            fl_font(MONO_FONT, Settings::nil.as_chapter_font_size());
+            int title_width = 0;
+            {
+                int term_len = 0;
+                matchmaker::chapter_title(0, ch_i, &terms, &term_count);
+                for (int i = 0; i < term_count; ++i)
+                {
+                    matchmaker::at(terms[i], &term_len);
+                    title_width += term_len;
+                }
+            }
+            title_width = (int) (title_width * fl_width('Q'));
+
+            yp = yp_before_subtitle;
+            xp = content_x + content_width - 17 - title_width;
+            xi = xi_subtitle_line_1;
+            for (int i = 0; i < term_count; ++i)
+            {
+                append_term(
+                    terms[i],
+                    0,
+                    ch_i,
+                    -1,
+                    nullptr,
+                    0,
+                    -1,
+                    false,
+                    type().as_chapter_title_color(),
+                    xp,
+                    yp,
+                    xi,
+                    term_visible
+                );
+                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+                    return;
+            }
+
+            yp += line_height;
+
             if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                 return;
         }
-        yp += line_height;
-        xp = content_x;
-        xi = 0;
 
-        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-            return;
 
-        matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
-        for (int i = 0; i < term_count; ++i)
-        {
-            if (terms[i] == index_of_comma)
-            {
-                yp += line_height;
-                xp = content_x;
-                xi = 0;
-                continue;
-            }
-
-            append_term(terms[i], 0, ch_i, -1, nullptr, 0, -1,
-                        Settings::nil.as_chapter_subtitle_color(),
-                        xp, yp, xi, term_visible);
-            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-                return;
-        }
-
+        // draw the chapter's paragraphs
+        fl_font(MONO_FONT, Settings::nil.as_font_size());
         yp += line_height * 2;
         xp = content_x;
         xi = 0;
@@ -843,6 +999,7 @@ void CellViewer::draw_content()
         int const * ancestors{nullptr};
         int ancestor_count{0};
         int index_within_first_ancestor{-1};
+        Fl_Color foreground_color = type().as_foreground_color();
         for (p_i = 0; p_i < p_count; ++p_i)
         {
             w_count = matchmaker::word_count(0, ch_i, p_i);
@@ -853,13 +1010,25 @@ void CellViewer::draw_content()
 
                 // apply color from term or from ancestors if term's color is the foreground_color
                 Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
-                for (int i = 0; i < ancestor_count && draw_color == foreground_color(); ++i)
+                for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
                     draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
 
-                append_term(term, 0, ch_i, p_i,
-                            ancestors, ancestor_count, index_within_first_ancestor,
-                            draw_color,
-                            xp, yp, xi, term_visible);
+                append_term(
+                    term,
+                    0,
+                    ch_i,
+                    p_i,
+                    ancestors,
+                    ancestor_count,
+                    index_within_first_ancestor,
+                    false,
+                    draw_color,
+                    xp,
+                    yp,
+                    xi,
+                    term_visible
+                );
+
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
@@ -874,6 +1043,7 @@ void CellViewer::draw_content()
         if (!offsets_dirty && yp + line_height - scroll_offset() > h())
             return;
     }
+
     if (offsets_dirty)
     {
         max_scroll_offset = ((int) (yp - h()) / line_height) * line_height;
@@ -898,10 +1068,21 @@ void CellViewer::draw_content()
 
 
 
-void CellViewer::append_term(int term, int book, int chapter, int paragraph,
-                             int const * ancestors, int ancestor_count, int index_within_first_ancestor,
-                             Fl_Color draw_color,
-                             int & xp, int & yp, int & xi, bool & term_visible)
+void CellViewer::append_term(
+    int term,
+    int book,
+    int chapter,
+    int paragraph,
+    int const * ancestors,
+    int ancestor_count,
+    int index_within_first_ancestor,
+    bool within_chapter_subtitle,
+    Fl_Color draw_color,
+    int & xp,
+    int & yp,
+    int & xi,
+    bool & term_visible
+)
 {
     int s_len{0};
     char const * s = matchmaker::at(term, &s_len);
@@ -985,6 +1166,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                         cells[yi][xi].book = book;
                         cells[yi][xi].chapter = chapter;
                         cells[yi][xi].paragraph = paragraph;
+                        cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
 
                         term_visible = true;
                     }
@@ -1051,6 +1233,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
                         cells[yi][xi].book = book;
                         cells[yi][xi].chapter = chapter;
                         cells[yi][xi].paragraph = paragraph;
+                        cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
 
                         term_visible = true;
                     }
@@ -1107,6 +1290,7 @@ void CellViewer::append_term(int term, int book, int chapter, int paragraph,
             cells[yi][xi].book = book;
             cells[yi][xi].chapter = chapter;
             cells[yi][xi].paragraph = paragraph;
+            cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
 
             term_visible = true;
         }

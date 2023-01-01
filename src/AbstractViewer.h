@@ -13,6 +13,5 @@ class AbstractViewer : public Fl_Widget
 public:
     AbstractViewer(int x, int y, int w, int h);
     virtual ~AbstractViewer() noexcept;
-    virtual Fl_Color foreground_color() const = 0;
     virtual Viewer::Type type() const = 0;
 };
