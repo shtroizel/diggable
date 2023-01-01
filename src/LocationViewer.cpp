@@ -68,6 +68,13 @@ void LocationViewer::locate()
 
 
 
+int LocationViewer::count() const
+{
+    return (int) locations.size();
+}
+
+
+
 std::vector<std::pair<int, std::string>> const & LocationViewer::chapters()
 {
     return locations;

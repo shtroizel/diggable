@@ -16,6 +16,7 @@ public:
     LocationViewer(int x, int y, int w, int h);
     ~LocationViewer() noexcept;
     void locate();
+    int count() const;
     Viewer::Type type() const override;
 
 private:

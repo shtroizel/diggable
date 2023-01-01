@@ -714,12 +714,17 @@ void CellViewer::leave()
 
 void CellViewer::scroll_to_offset(int offset)
 {
-    if (offset < 0 || offset >= (int) scroll_offsets_by_chapter.size())
+    if (scroll_offsets_by_chapter.empty())
     {
-        std::cout << "Viewer::scroll_to_offset(" << std::to_string(offset) << ") --> out of bounds (size: "
-                  << std::to_string(scroll_offsets_by_chapter.size()) << ")" << std::endl;
+        std::cout << "CellViewer::scroll_to_offset() --> scroll_offsets_by_chapter is empty!" << std::endl;
         return;
     }
+
+    if (offset >= (int) scroll_offsets_by_chapter.size())
+        offset = (int) scroll_offsets_by_chapter.size() - 1;
+
+    if (offset < 0)
+        offset = 0;
 
     scroll_offset() = scroll_offsets_by_chapter[offset];
     redraw();

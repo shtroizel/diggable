@@ -23,6 +23,7 @@ int const MONO_FONT{4};
 int const BKSPC{65288};
 int const DELETE{65535};
 int const ENTER{65293};
+int const KP_ENTER{65421};
 int const ESC{65307};
 int const UP{65362};
 int const DOWN{65364};
@@ -36,6 +37,8 @@ TermViewer::TermViewer(int x, int y, int w, int h)
     , button_bar_height{single_line_search_bar_height}
 {
     search_bar_height = single_line_search_bar_height;
+    for (int8_t & i : go_to_chapter_input)
+        i = 0;
 }
 
 
@@ -89,14 +92,45 @@ int TermViewer::handle(int event)
             {
                 CompletionStack & cs = Data::nil.as_mutable_completion_stack();
 
-                // std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << Fl::event_key() << "'" << std::endl;
+                std::cout << "TermViewer::handle() --> FL_KEYBOARD --> '" << Fl::event_key() << "'" << std::endl;
                 switch (Fl::event_key())
                 {
                     case ESC:
-                        Data::nil.as_mutable_completion_stack().clear_all();
+                        if (go_to_chapter_mode)
+                        {
+                            go_to_chapter_mode = false;
+                            go_to_chapter_digits_entered = 0;
+                            for (int8_t & i : go_to_chapter_input)
+                                i = 0;
+                        }
+                        else
+                        {
+                            Data::nil.as_mutable_completion_stack().clear_all();
+                        }
                         break;
 
+                    case KP_ENTER:
                     case ENTER:
+                        if (go_to_chapter_mode)
+                        {
+                            int factor = 1;
+                            int sum = 0;
+                            for (int8_t i = go_to_chapter_digits_entered; i-- > 0;)
+                            {
+                                sum += go_to_chapter_input[i] * factor;
+                                factor *= 10;
+                            }
+
+                            BookViewer * bv = Data::nil.as_book_viewer();
+                            if (nullptr != bv)
+                                bv->scroll_to_offset(sum - 1);
+
+                            go_to_chapter_mode = false;
+                            go_to_chapter_digits_entered = 0;
+                            for (int8_t & i : go_to_chapter_input)
+                                i = 0;
+                        }
+                        else
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             std::vector<int> & c = cs.top().standard_completion;
@@ -127,6 +161,7 @@ int TermViewer::handle(int event)
                         break;
 
                     case UP:
+                        if (!go_to_chapter_mode)
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             cs.top().display_start -= 1;
@@ -137,6 +172,7 @@ int TermViewer::handle(int event)
                         break;
 
                     case DOWN:
+                        if (!go_to_chapter_mode)
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             std::vector<int> const & c = cs.top().standard_completion;
@@ -148,17 +184,24 @@ int TermViewer::handle(int event)
                         break;
 
                     case BKSPC:
-                        cs.pop();
-                        // if (nullptr != book_viewer)
-                        //     book_viewer->redraw();
+                        if (go_to_chapter_mode)
+                        {
+                            if (go_to_chapter_digits_entered > 0)
+                            {
+                                --go_to_chapter_digits_entered;
+                                go_to_chapter_input[go_to_chapter_digits_entered] = 0;
+                            }
+                        }
+                        else
+                        {
+                            cs.pop();
+                        }
                         break;
 
                     case DELETE:
-                        if (!Data::pop_term_stack())
-                            return 1;
-                        // update_selection_from_completion_stack();
-                        // redraw();
-                        return 1;
+                        if (!go_to_chapter_mode)
+                            Data::pop_term_stack();
+                        break;
 
                     default:
                         {
@@ -167,35 +210,24 @@ int TermViewer::handle(int event)
                                 return 1;
 
                             int key = s[0];
-                            cs.push(key);
+
+                            if (go_to_chapter_mode)
+                            {
+                                if (go_to_chapter_digits_entered < (int) go_to_chapter_input.size() &&
+                                        key >= '0' && key <= '9')
+                                {
+                                    go_to_chapter_input[go_to_chapter_digits_entered++] = key - '0';
+                                }
+                            }
+                            else
+                            {
+                                if (key == '!' && Data::nil.as_completion_stack().count() == 1)
+                                    go_to_chapter_mode = true;
+                                else
+                                    cs.push(key);
+                            }
                         }
                 };
-
-                // update_selection_from_completion_stack();
-                // if (cs.top().standard_completion.size() > 0)
-                // {
-                //     if (nullptr != location_viewer)
-                //     {
-                //         int term = cs.top().standard_completion.front();
-                //         std::vector<Fl_Color> & term_colors =
-                //                 Settings::nil.as_mutable_term_colors_vect();
-                //
-                //         // deselect previous term
-                //         if (-1 != Settings::nil.as_selected_term() &&
-                //                 Settings::nil.as_selected_term() != term)
-                //             term_colors[Settings::nil.as_selected_term()] =
-                //                     Settings::nil.as_foreground_color();
-                //
-                //         // select completion
-                //         term_colors[term] = Settings::nil.as_highlight_color();
-                //
-                //         // set selected term
-                //         Settings::nil.set_selected_term(term);
-                //
-                //         if (nullptr != location_viewer)
-                //             location_viewer->locate();
-                //     }
-                // }
             }
             redraw();
             return 1;
@@ -282,6 +314,19 @@ int TermViewer::handle(int event)
                     ex < x() + w() / button_count - margins
                 )
                 {
+                    CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+                    while (cs.count() > 1)
+                        cs.pop();
+
+                    go_to_chapter_mode = true;
+                    redraw();
+                }
+                else if ( // left middle button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + w() * ((button_count / 2) - 2) / button_count + margins &&
+                    ex < x() + w() * ((button_count / 2) - 1) / button_count - margins
+                )
+                {
                     if (nullptr != Data::nil.as_book_viewer())
                     {
                         BookViewer * bv = Data::nil.as_book_viewer();
@@ -333,10 +378,10 @@ int TermViewer::handle(int event)
                         Data::nil.as_location_viewer()->redraw();
                     }
                 }
-                else if ( // right button
+                else if ( // right middle button
                     ey > y() + h() - button_bar_height &&
                     ex > x() + w() * ((button_count / 2) + 2) / button_count + margins &&
-                    ex < x() + w() - margins
+                    ex < x() + w() * ((button_count / 2) + 3) / button_count - margins
                 )
                 {
                     int fs = Settings::nil.as_font_size() - 1;
@@ -357,6 +402,14 @@ int TermViewer::handle(int event)
                         Data::nil.as_location_viewer()->mark_dirty();
                         Data::nil.as_location_viewer()->redraw();
                     }
+
+                }
+                else if ( // right button
+                    ey > y() + h() - button_bar_height &&
+                    ex > x() + w() * ((button_count / 2) + 3) / button_count + margins &&
+                    ex < x() + w() * ((button_count / 2) + 4) / button_count - margins
+                )
+                {
                 }
             }
             return 1;
@@ -459,6 +512,17 @@ int TermViewer::handle(int event)
                         hover_box[3] = button_bar_height;
                         hover_box_visible = true;
                     }
+                    else if ( // left middle button
+                        ex > x() + w() * ((button_count / 2) - 2) / button_count + margins &&
+                        ex < x() + w() * ((button_count / 2) - 1) / button_count - margins
+                    )
+                    {
+                        hover_box[0] = x() + w() * ((button_count / 2) - 2) / button_count + margins;
+                        hover_box[1] = y() + h() - button_bar_height;
+                        hover_box[2] = w() / button_count - margins * 2;
+                        hover_box[3] = button_bar_height;
+                        hover_box_visible = true;
+                    }
                     else if ( // middle left button
                         ex > x() + w() * ((button_count / 2) - 1) / button_count + margins &&
                         ex < x() + w() * (button_count / 2) / button_count - margins
@@ -492,9 +556,9 @@ int TermViewer::handle(int event)
                         hover_box[3] = button_bar_height;
                         hover_box_visible = true;
                     }
-                    else if ( // right button
+                    else if ( // right middle button
                         ex > x() + w() * ((button_count / 2) + 2) / button_count + margins &&
-                        ex < x() + w() - margins
+                        ex < x() + w() * ((button_count / 2) + 3) / button_count - margins
                     )
                     {
                         hover_box[0] = x() + w() * ((button_count / 2) + 2) / button_count + margins;
@@ -620,6 +684,25 @@ void TermViewer::draw_search_bar()
 
         if (search_bar_height != prev_search_bar_height)
             draw_search_bar();
+    }
+    else
+    {
+        if (go_to_chapter_mode)
+        {
+            fl_color(FL_BLACK);
+            int yp = y() + margins + line_height;
+            int xp = x() + margins + 17;
+
+            fl_draw("go to chapter -> ", xp, yp);
+            xp += 17 * fl_width('Q');
+
+            for (int i = 0; i < go_to_chapter_digits_entered; ++i)
+            {
+                std::string s = std::to_string(go_to_chapter_input[i]);
+                fl_draw(s.c_str(), xp, yp);
+                xp += fl_width('q');
+            }
+        }
     }
 }
 
@@ -813,17 +896,15 @@ void TermViewer::draw_button_bar()
         w(),
         button_bar_height,
         Settings::nil.as_background_color()
+        // FL_YELLOW
     );
 
-    fl_font(MONO_FONT, Settings::nil.as_font_size() + 2);
+    fl_font(MONO_FONT, Settings::nil.as_font_size() + 1);
 
-    BookViewer * bv = Data::nil.as_book_viewer();
-    fl_color(type().as_foreground_color());
-    if (nullptr != bv && bv->using_by_month_order())
-        fl_color(Settings::nil.as_highlight_color());
 
+    fl_color(Viewer::BookViewer::grab().as_foreground_color());
     fl_draw(
-        "Δ",
+        "!",
         x() + margins,
         y() + h() - button_bar_height,
         w() / button_count - margins * 2,
@@ -833,7 +914,24 @@ void TermViewer::draw_button_bar()
         0
     );
 
-    fl_color(FL_BLACK);
+    fl_color(Viewer::BookViewer::grab().as_foreground_color());
+    {
+        BookViewer * bv = Data::nil.as_book_viewer();
+        if (nullptr != bv && bv->using_by_month_order())
+            fl_color(Settings::nil.as_highlight_color());
+    }
+    fl_draw(
+        "Δ",
+        x() + w() * ((button_count / 2) - 2) / button_count + margins,
+        y() + h() - button_bar_height,
+        w() / button_count - margins * 2,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+
+    fl_color(purple);
     fl_draw(
         "Esc",
         x() + w() * ((button_count / 2) - 1) / button_count + margins,
@@ -845,7 +943,7 @@ void TermViewer::draw_button_bar()
         0
     );
 
-    fl_color(fl_darker(Settings::nil.as_term_stack_color()));
+    fl_color(Settings::nil.as_term_stack_color());
     fl_draw(
         "Del",
         x() + w() * (button_count / 2) / button_count + margins,
@@ -856,6 +954,8 @@ void TermViewer::draw_button_bar()
         nullptr,
         0
     );
+
+    fl_color(FL_BLACK);
     fl_draw(
         "+",
         x() + w() * ((button_count / 2) + 1) / button_count + margins,
@@ -866,6 +966,7 @@ void TermViewer::draw_button_bar()
         nullptr,
         0
     );
+
     fl_draw(
         "-",
         x() + w() * ((button_count / 2) + 2) / button_count + margins,
@@ -876,6 +977,24 @@ void TermViewer::draw_button_bar()
         nullptr,
         0
     );
+
+    LocationViewer * lv = Data::nil.as_location_viewer();
+    if (nullptr != lv && lv->count() > 0)
+    {
+        std::string s = std::to_string(lv->count());
+
+        fl_color(Settings::nil.as_highlight_color());
+        fl_draw(
+            s.c_str(),
+            x() + w() * ((button_count / 2) + 3) / button_count + margins,
+            y() + h() - button_bar_height,
+            w() / button_count - margins * 2,
+            button_bar_height,
+            FL_ALIGN_CENTER,
+            nullptr,
+            0
+        );
+    }
 }
 
 
