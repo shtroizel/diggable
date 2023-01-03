@@ -17,6 +17,7 @@ public:
     ~LocationViewer() noexcept;
     void locate();
     int count() const;
+    int first_chapter() const;
     Viewer::Type type() const override;
 
 private:

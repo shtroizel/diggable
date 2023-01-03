@@ -165,7 +165,7 @@ namespace Data
 
 
 
-    void term_clicked(int term, Viewer::Type caller)
+    void term_clicked(int term, int chapter, Viewer::Type caller)
     {
         // std::cout << "clicked on term: " << term << std::endl;
         auto & term_colors = Settings::nil.as_mutable_term_colors();
@@ -223,6 +223,35 @@ namespace Data
 
             // pop term from the word stack
             pop_term_stack();
+        }
+
+        // if no chapter info given then try to get from location_viewer.
+        if (chapter == -1)
+        {
+            LocationViewer * lv = Data::nil.as_location_viewer();
+            if (nullptr != lv)
+                chapter = lv->first_chapter();
+        }
+
+        // show image?
+        int s_len = 0;
+        char const * s = matchmaker::at(term, &s_len);
+        if (chapter != -1 && s_len > 3 && s[0] == '~' && s[1] == '~' && s[2] == '~')
+        {
+            ++s;
+            ++s;
+            ++s;
+
+            std::string & image_path = Data::nil.as_mutable_click_image_path();
+            image_path = Data::nil.as_assets_dir();
+            image_path += "/";
+            image_path += std::to_string(chapter + 1);
+            image_path += "_";
+            image_path += s;
+        }
+        else
+        {
+            Data::nil.set_click_image_path("");
         }
     }
 }

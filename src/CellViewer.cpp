@@ -319,6 +319,8 @@ int CellViewer::handle(int event)
 
         case FL_MOVE:
             {
+                Data::nil.set_hover_image_path("");
+
                 int const ex = Fl::event_x();
                 // int const ey = Fl::event_y();
                 int const ty = (Fl::event_y() - y()) / Settings::nil.as_line_height();
@@ -519,10 +521,33 @@ int CellViewer::handle(int event)
 
                         hover_box_visible = true;
 
+                        // show image?
+                        int s_len = 0;
+                        char const * s = matchmaker::at(t.term, &s_len);
+                        if (s_len > 3)
+                        {
+                            if (s[0] == '~' && s[1] == '~' && s[2] == '~')
+                            {
+                                ++s;
+                                ++s;
+                                ++s;
+
+                                std::string & image_path = Data::nil.as_mutable_hover_image_path();
+                                image_path = Data::nil.as_assets_dir();
+                                image_path += "/";
+                                image_path += std::to_string(t.chapter + 1);
+                                image_path += "_";
+                                image_path += s;
+                            }
+                        }
+
                         break;
                     }
-
                 }
+
+                TermViewer * tv = Data::nil.as_mutable_term_viewer();
+                if (nullptr != tv)
+                    tv->redraw();
             }
             redraw();
             return 1;
@@ -640,11 +665,9 @@ int CellViewer::handle(int event)
                                 term = c.ancestors[0];
                             }
 
+                            Data::term_clicked(term, c.chapter, type());
 
-
-                            Data::term_clicked(term, type());
-
-                            return 1;
+                            break;
                         }
                     }
                 }

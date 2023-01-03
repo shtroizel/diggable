@@ -29,6 +29,8 @@ endif()
 
 
 find_package(FLTK REQUIRED)
+
+
 find_package(Threads REQUIRED)
 
 include_directories(
@@ -75,4 +77,17 @@ target_include_directories(
     include
     matchable/include
 )
+
+
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME})
+add_custom_target(ex_assets ALL)
+add_custom_command(
+    TARGET ex_assets
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E tar xvf ${PROJECT_SOURCE_DIR}/data/assets.tar.gz
+    WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/diggable/
+    COMMENT "unpacking assets..."
+    VERBATIM
+)
+
 install(TARGETS diggable DESTINATION bin)

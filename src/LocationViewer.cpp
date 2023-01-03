@@ -75,6 +75,17 @@ int LocationViewer::count() const
 
 
 
+int LocationViewer::first_chapter() const
+{
+    if (locations.empty())
+        return -1;
+
+    return locations[0].first;
+}
+
+
+
+
 std::vector<std::pair<int, std::string>> const & LocationViewer::chapters()
 {
     return locations;

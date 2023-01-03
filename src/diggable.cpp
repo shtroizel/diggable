@@ -1,8 +1,10 @@
 #include <iostream>
 
 #include <deque>
+#include <filesystem>
 
 #include <FL/Fl.H>
+#include <FL/Fl_Shared_Image.H>
 
 #include <MainWindow.h>
 #include <matchmaker.h>
@@ -14,6 +16,8 @@
 
 int main(int argc, char **argv)
 {
+    fl_register_images();
+
     // disable dynamic loading and use dynamic linking instead
     matchmaker::set_library(nullptr);
 
@@ -40,6 +44,13 @@ int main(int argc, char **argv)
         ts.clear();
     }
     ts.push_back({ -1, 0, 0, 0 });
+
+    // assets
+    std::string assets_dir = std::filesystem::path(argv[0]).parent_path();
+    assets_dir += "/../share/diggable/assets";
+    assets_dir = std::filesystem::weakly_canonical(assets_dir);
+    // std::cout << "assets_dir: '" << assets_dir << "'" << std::endl;
+    Data::nil.set_assets_dir(assets_dir);
 
     Fl::set_fonts("-*");
     Fl::visual(FL_RGB);

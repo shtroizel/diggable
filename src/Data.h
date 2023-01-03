@@ -31,12 +31,15 @@ class LocationViewer;
 
 
 
-PROPERTYx5_MATCHABLE(
+PROPERTYx8_MATCHABLE(
     BookViewer *, book_viewer,
     TermViewer *, term_viewer,
     LocationViewer *, location_viewer,
     CompletionStack, completion_stack,
     TermStack, term_stack,
+    std::string, assets_dir,
+    std::string, hover_image_path,
+    std::string, click_image_path,
 
     Data
 )
@@ -50,5 +53,5 @@ namespace Data
     bool pop_term_stack();
     void push_term_stack(int term, Viewer::Type caller);
     void refresh_completion_stack();
-    void term_clicked(int term, Viewer::Type caller);
+    void term_clicked(int term, int chapter, Viewer::Type caller);
 }

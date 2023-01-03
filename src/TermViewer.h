@@ -32,13 +32,17 @@ public:
 private:
     void draw_search_bar();
     void draw_completion();
-    void draw_word_stack();
+    void draw_info_area();
+    void draw_synonyms();
+    void draw_image(std::string const & image_path);
+    void draw_term_stack();
     void draw_button_bar();
     int term_stack_height();
 
 private:
     int search_bar_height;
     int const single_line_search_bar_height;
+    int info_area_height{17};
     int const button_bar_height;
     int const button_count{7};
     int margins{5};
@@ -49,6 +53,10 @@ private:
     bool go_to_chapter_mode{false};
     std::array<int8_t, 7> go_to_chapter_input;
     int8_t go_to_chapter_digits_entered{0};
+    int mouse_start_x{0};
+    int mouse_start_y{0};
+    int start_cs_display_start{0};
+    int start_ts_display_start{0};
 
     // (start line, line count)
     std::array<std::pair<int, int>, 216> display_locations;
