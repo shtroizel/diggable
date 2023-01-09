@@ -37,10 +37,9 @@ float const HOVER_BOX_MARGIN_SIZE{2};
 
 TermViewer::TermViewer(int x, int y, int w, int h)
     : AbstractViewer{x, y, w, h}
-    , single_line_search_bar_height{Settings::nil.as_line_height() * 2}
-    , button_bar_height{single_line_search_bar_height}
+    , button_bar_height{17 + 17}
 {
-    search_bar_height = single_line_search_bar_height;
+    search_bar_height = single_line_search_bar_height();
     for (int8_t & i : go_to_chapter_input)
         i = 0;
 }
@@ -49,14 +48,15 @@ TermViewer::TermViewer(int x, int y, int w, int h)
 
 TermViewer::~TermViewer() noexcept
 {
-    // Settings::nil.set_term_viewer(nullptr);
+    Data::nil.set_term_viewer(nullptr);
 }
 
 
 
 void TermViewer::draw()
 {
-    // fl_rectf(x(), y(), w(), h(), Settings::nil.as_background_color());
+    if (w() < 177 || h() < 17)
+        return;
 
     draw_info_area();
     draw_search_bar();
@@ -224,7 +224,8 @@ int TermViewer::handle(int event)
                             }
                             else
                             {
-                                if (key == '!' && Data::nil.as_completion_stack().count() == 1)
+                                // if (key == '!' && Data::nil.as_completion_stack().count() == 1)
+                                if (key == '!')
                                     go_to_chapter_mode = true;
                                 else
                                     cs.push(key);
@@ -277,7 +278,21 @@ int TermViewer::handle(int event)
 
                 int const tsh = term_stack_height();
 
-                if ( // completion stack
+                // backspace button
+                if (
+                    ey < single_line_search_bar_height() &&
+                    ex > x() + w() - margins - 17 * 2
+                )
+                {
+                    hover_box[0] = x() + w() - margins - 17 * 2;
+                    hover_box[1] = y() + margins;
+                    hover_box[2] = 17 * 2;
+                    hover_box[3] = single_line_search_bar_height() - margins * 2;
+                    hover_box_visible = true;
+                }
+
+                // completion stack
+                else if (
                     cs.count() > 1 &&
                     ey > y() + search_bar_height &&
                     ey < y() + h() - button_bar_height - tsh - info_area_height - line_height - margins * 2
@@ -329,7 +344,9 @@ int TermViewer::handle(int event)
                         hover_box_visible = true;
                     }
                 }
-                else if ( // term stack
+
+                // term stack
+                else if (
                     ey > y() + h() - button_bar_height - tsh &&
                     ey < y() + h() - button_bar_height
                 )
@@ -347,7 +364,7 @@ int TermViewer::handle(int event)
                     }
                 }
 
-                // one of the buttons
+                // bottom buttons
                 else if (ey > y() + h() - button_bar_height)
                 {
                     if ( // left button
@@ -477,7 +494,30 @@ int TermViewer::handle(int event)
                     int const line_height = Settings::nil.as_line_height();
                     int ci = (ey - (y() + search_bar_height + margins)) / line_height;
 
-                    if ( // completion stack area
+                    // backspace button
+                    if (
+                        ey < single_line_search_bar_height() &&
+                        ex > x() + w() - margins - 17 * 2
+                    )
+                    {
+                        if (go_to_chapter_mode)
+                        {
+                            if (go_to_chapter_digits_entered > 0)
+                            {
+                                --go_to_chapter_digits_entered;
+                                go_to_chapter_input[go_to_chapter_digits_entered] = 0;
+                            }
+                        }
+                        else
+                        {
+                            cs.pop();
+                        }
+
+                        redraw();
+                    }
+
+                    // completion stack area
+                    else if (
                         cs.count() > 1 &&
                         ey > y() + search_bar_height &&
                         ey < y() + h() - button_bar_height - tsh - line_height - margins * 2
@@ -500,7 +540,9 @@ int TermViewer::handle(int event)
                         Data::term_clicked(c[ci] + cs.top().display_start, -1, Viewer::TermViewer::grab());
                         redraw();
                     }
-                    else if ( // term stack
+
+                    // term stack
+                    else if (
                         ey > y() + h() - button_bar_height - tsh &&
                         ey < y() + h() - button_bar_height
                     )
@@ -512,30 +554,33 @@ int TermViewer::handle(int event)
 
                         if (i > 0 && i < (int) ts.size() - 1)
                         {
-                            std::cout << "term stack clicked!" << std::endl;
+                            // std::cout << "term stack clicked!" << std::endl;
                             Data::term_clicked(ts[i].selected_term, -1, Viewer::BookViewer::grab());
                             redraw();
                         }
                         else
                         {
-                            std::cout << "out of range!" << std::endl;
+                            // std::cout << "out of range!" << std::endl;
                         }
-
                     }
-                    else if ( // left button
+
+                    // left button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + margins &&
                         ex < x() + w() / button_count - margins
                     )
                     {
-                        CompletionStack & cs = Data::nil.as_mutable_completion_stack();
-                        while (cs.count() > 1)
-                            cs.pop();
+                        // CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+                        // while (cs.count() > 1)
+                        //     cs.pop();
 
                         go_to_chapter_mode = true;
                         redraw();
                     }
-                    else if ( // left middle button
+
+                    // left middle button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + w() * ((button_count / 2) - 2) / button_count + margins &&
                         ex < x() + w() * ((button_count / 2) - 1) / button_count - margins
@@ -548,7 +593,9 @@ int TermViewer::handle(int event)
                             bv->redraw();
                         }
                     }
-                    else if ( // middle left button
+
+                    // middle left button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + w() * ((button_count / 2) - 1) / button_count + margins &&
                         ex < x() + w() * (button_count / 2) / button_count - margins
@@ -557,7 +604,9 @@ int TermViewer::handle(int event)
                         Data::nil.as_mutable_completion_stack().clear_all();
                         redraw();
                     }
-                    else if ( // middle button
+
+                    // middle button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + w() * (button_count / 2) / button_count + margins &&
                         ex < x() + w() * ((button_count / 2) + 1) / button_count - margins
@@ -568,7 +617,9 @@ int TermViewer::handle(int event)
                             redraw();
                         }
                     }
-                    else if ( // middle right button
+
+                    // middle right button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + w() * ((button_count / 2) + 1) / button_count + margins &&
                         ex < x() + w() * ((button_count / 2) + 2) / button_count - margins
@@ -577,22 +628,12 @@ int TermViewer::handle(int event)
                         int fs = Settings::nil.as_font_size() + 1;
                         if (fs > Settings::nil.as_max_font_size())
                             fs = Settings::nil.as_max_font_size();
-                        Settings::nil.set_font_size(fs);
-                        fl_font(MONO_FONT, fs);
-                        Settings::nil.set_line_height(
-                                (int) (fl_size() * Settings::nil.as_line_height_factor()));
-                        if (nullptr != Data::nil.as_book_viewer())
-                        {
-                            Data::nil.as_book_viewer()->mark_dirty();
-                            Data::nil.as_book_viewer()->redraw();
-                        }
-                        if (nullptr != Data::nil.as_location_viewer())
-                        {
-                            Data::nil.as_location_viewer()->mark_dirty();
-                            Data::nil.as_location_viewer()->redraw();
-                        }
+
+                        Data::set_font_size(fs);
                     }
-                    else if ( // right middle button
+
+                    // right middle button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + w() * ((button_count / 2) + 2) / button_count + margins &&
                         ex < x() + w() * ((button_count / 2) + 3) / button_count - margins
@@ -601,24 +642,12 @@ int TermViewer::handle(int event)
                         int fs = Settings::nil.as_font_size() - 1;
                         if (fs < Settings::nil.as_min_font_size())
                             fs = Settings::nil.as_min_font_size();
-                        Settings::nil.set_font_size(fs);
-                        fl_font(MONO_FONT, fs);
-                        Settings::nil.set_line_height(
-                                (int) (fl_size() * Settings::nil.as_line_height_factor()));
-                        redraw();
-                        if (nullptr != Data::nil.as_book_viewer())
-                        {
-                            Data::nil.as_book_viewer()->mark_dirty();
-                            Data::nil.as_book_viewer()->redraw();
-                        }
-                        if (nullptr != Data::nil.as_location_viewer())
-                        {
-                            Data::nil.as_location_viewer()->mark_dirty();
-                            Data::nil.as_location_viewer()->redraw();
-                        }
 
+                        Data::set_font_size(fs);
                     }
-                    else if ( // right button
+
+                    // right button
+                    else if (
                         ey > y() + h() - button_bar_height &&
                         ex > x() + w() * ((button_count / 2) + 3) / button_count + margins &&
                         ex < x() + w() * ((button_count / 2) + 4) / button_count - margins
@@ -659,7 +688,7 @@ int TermViewer::handle(int event)
 
 
 
-int TermViewer::term_stack_height()
+int TermViewer::term_stack_height() const
 {
     // int lines = Data::nil.as_term_stack().size() - 1;
     // if (lines > 7)
@@ -677,6 +706,14 @@ int TermViewer::term_stack_height()
 
 
 
+int TermViewer::single_line_search_bar_height() const
+{
+    // return Settings::nil.as_line_height() * 2;
+    return 17 + 17;
+}
+
+
+
 void TermViewer::leave()
 {
     hover_box_visible = false;
@@ -689,6 +726,8 @@ void TermViewer::draw_search_bar()
 {
     int const prev_search_bar_height = search_bar_height;
 
+    // std::cout << "search_bar_height: " << search_bar_height << std::endl;
+
     CompletionStack & cs = Data::nil.as_mutable_completion_stack();
 
     // clear
@@ -698,64 +737,85 @@ void TermViewer::draw_search_bar()
     fl_rectf(
         x() + margins,
         y() + margins,
-        w() - margins * 2,
+        w() - margins * 3 - 17 * 2,
         search_bar_height - margins * 2,
-        Settings::nil.as_input_background_color());
+        Settings::nil.as_input_background_color()
+    );
 
-    fl_font(MONO_FONT, Settings::nil.as_font_size());
+    int search_bar_font_size = Settings::nil.as_font_size();
+    if (search_bar_font_size > 17)
+        search_bar_font_size = 17;
 
-    int const line_height = Settings::nil.as_line_height();
+    fl_font(MONO_FONT, search_bar_font_size);
 
-    if (cs.count() > 1)
+    int const line_height = (int) (fl_size() * Settings::nil.as_line_height_factor());
+
+    if (go_to_chapter_mode)
     {
         fl_color(FL_BLACK);
+        int yp = y() + margins + search_bar_height / 2;
+        int xp = x() + margins * 2;
 
-        int s_len{(int) cs.top().prefix.size()};
-        char const * s = cs.top().prefix.c_str();
-        double const width_of_single_char = fl_width("Q");
-        int total_chars_written{0};
-        int chars_to_write{0};
-        int const max_chars_to_write = (int) ((w() - margins * 3) / width_of_single_char);
-        int line{1};
+        fl_draw("go to chapter -> ", xp, yp);
 
-        search_bar_height = single_line_search_bar_height;
-        if (total_chars_written < s_len)
-            search_bar_height -= line_height;
+        xp += 17 * fl_width('Q');
 
-        while (total_chars_written < s_len)
+        for (int i = 0; i < go_to_chapter_digits_entered; ++i)
         {
-            chars_to_write = s_len - total_chars_written;
-            if (chars_to_write > max_chars_to_write)
-                chars_to_write = max_chars_to_write;
-
-            fl_draw(s, chars_to_write, x() + margins + margins, y() + margins + line_height * line++);
-            total_chars_written += chars_to_write;
-            s += chars_to_write;
-            search_bar_height += line_height;
+            std::string s = std::to_string(go_to_chapter_input[i]);
+            fl_draw(s.c_str(), xp, yp);
+            xp += fl_width('q');
         }
-
-        if (search_bar_height != prev_search_bar_height)
-            draw_search_bar();
     }
     else
     {
-        if (go_to_chapter_mode)
+        if (cs.count() > 1)
         {
             fl_color(FL_BLACK);
-            int yp = y() + margins + line_height;
-            int xp = x() + margins + 17;
 
-            fl_draw("go to chapter -> ", xp, yp);
-            xp += 17 * fl_width('Q');
+            int s_len{(int) cs.top().prefix.size()};
+            char const * s = cs.top().prefix.c_str();
+            double const width_of_single_char = fl_width("Q");
+            int total_chars_written{0};
+            int chars_to_write{0};
+            int const max_chars_to_write = (int) ((w() - margins * 4 - 17 * 2) / width_of_single_char);
+            int line{1};
 
-            for (int i = 0; i < go_to_chapter_digits_entered; ++i)
+            // search_bar_height = line_height;
+            search_bar_height = single_line_search_bar_height();
+            if (total_chars_written < s_len)
+                search_bar_height -= line_height;
+
+            while (total_chars_written < s_len)
             {
-                std::string s = std::to_string(go_to_chapter_input[i]);
-                fl_draw(s.c_str(), xp, yp);
-                xp += fl_width('q');
+                chars_to_write = s_len - total_chars_written;
+                if (chars_to_write > max_chars_to_write)
+                    chars_to_write = max_chars_to_write;
+
+                fl_draw(s, chars_to_write, x() + margins * 2, y() + margins + line_height * line++);
+                total_chars_written += chars_to_write;
+                s += chars_to_write;
+                search_bar_height += line_height;
             }
         }
     }
+
+    // draw back button
+    // fl_color(Settings::nil.as_highlight_color());
+    fl_color(FL_RED);
+    fl_draw(
+        "<",
+        x() + w() - margins - 17 * 2,
+        y() + margins,
+        17 * 2,
+        single_line_search_bar_height() - margins * 2,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
+
+    if (search_bar_height != prev_search_bar_height)
+        draw_search_bar();
 }
 
 

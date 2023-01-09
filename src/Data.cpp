@@ -2,11 +2,18 @@
 
 #include <iostream>
 
+#include <FL/Fl.H>
+#include <FL/fl_draw.H>
+
 #include <BookViewer.h>
 #include <LocationViewer.h>
 #include <Settings.h>
 #include <TermViewer.h>
 #include <Viewer.h>
+
+
+
+int const MONO_FONT{4};
 
 
 
@@ -252,6 +259,32 @@ namespace Data
         else
         {
             Data::nil.set_click_image_path("");
+        }
+    }
+
+
+    void set_font_size(int fs)
+    {
+        // std::cout << "setting font size to: " << fs << std::endl;
+
+        Settings::nil.set_font_size(fs);
+        fl_font(MONO_FONT, fs);
+        Settings::nil.set_line_height(
+                (int) (fl_size() * Settings::nil.as_line_height_factor()));
+
+        if (nullptr != Data::nil.as_term_viewer())
+            Data::nil.as_term_viewer()->redraw();
+
+        if (nullptr != Data::nil.as_book_viewer())
+        {
+            Data::nil.as_book_viewer()->mark_dirty();
+            Data::nil.as_book_viewer()->redraw();
+        }
+
+        if (nullptr != Data::nil.as_location_viewer())
+        {
+            Data::nil.as_location_viewer()->mark_dirty();
+            Data::nil.as_location_viewer()->redraw();
         }
     }
 }

@@ -37,11 +37,11 @@ private:
     void draw_image(std::string const & image_path);
     void draw_term_stack();
     void draw_button_bar();
-    int term_stack_height();
+    int term_stack_height() const;
+    int single_line_search_bar_height() const;
 
 private:
     int search_bar_height;
-    int const single_line_search_bar_height;
     int info_area_height{17};
     int const button_bar_height;
     int const button_count{7};

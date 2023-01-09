@@ -22,7 +22,7 @@ LocationViewer::LocationViewer(int x, int y, int w, int h)
 
 LocationViewer::~LocationViewer() noexcept
 {
-    // Global::nil.set_location_viewer(nullptr);
+    Data::nil.set_location_viewer(nullptr);
 }
 
 
@@ -61,8 +61,6 @@ void LocationViewer::locate()
     }
 
     offsets_dirty = true;
-    // scroll_offset = 0;
-
     redraw();
 }
 
@@ -112,65 +110,3 @@ Viewer::Type LocationViewer::type() const
 {
     return Viewer::LocationViewer::grab();
 }
-
-
-
-
-// void LocationViewer::on_selected_term_changed_hook(int chapter, int prev_term, int term)
-// {
-//     (void) prev_term;
-//     (void) term;
-//
-//     locate();
-//     if (nullptr != book_viewer)
-//         book_viewer->scroll_to_offset(chapter);
-
-    // // save old prefix to word_stack
-    // if (prev_term != term)
-    // {
-    //     WordStack & ws = Global::nil.as_mutable_word_stack();
-    //     CompletionStack & cs = Global::nil.as_mutable_completion_stack();
-    //     ws.push_back({ cs.top().prefix, cs.top().display_start });
-    // }
-
-    // WordStack & ws = Global::nil.as_mutable_word_stack();
-    //
-    // if (term == -1)
-    // {
-    //     return;
-    // }
-    //
-    // int bv_scroll_offset = 0;
-    // if (nullptr != book_viewer)
-    //     bv_scroll_offset = book_viewer->get_scroll_offset();
-    //
-    // if (prev_term == -1)
-    // {
-    //     if (ws.empty())
-    //     {
-    //         ws.push_back({"", bv_scroll_offset, 0, scroll_offset});
-    //     }
-    // }
-    // else
-    // {
-    //     // WordStack & ws = Global::nil.as_mutable_word_stack();
-    //     // CompletionStack & cs = Global::nil.as_mutable_completion_stack();
-    //     // ws.push_back({ cs.top().prefix, cs.top().display_start });
-    //
-    //     CompletionStack & cs = Global::nil.as_mutable_completion_stack();
-    //
-    //     int len{0};
-    //     std::string s = matchmaker::at(prev_term, &len);
-    //     if (len < (int) cs.top().prefix.size() ||
-    //             s.substr(0, cs.top().prefix.size()) != cs.top().prefix)
-    //     {
-    //         std::cout << "LocationViewer::on_selected_term_changed() --> prefix \""
-    //                   << cs.top().prefix << "\" expected to be substr of term: \"" << s
-    //                   << "\"" << std::endl;
-    //         return;
-    //     }
-    //
-    //     ws.push_back({ cs.top().prefix, bv_scroll_offset, cs.top().display_start, scroll_offset });
-    // }
-
-// }

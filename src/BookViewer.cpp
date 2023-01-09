@@ -16,7 +16,6 @@
 
 
 
-
 using Chapters = std::vector<int>;
 PROPERTYx1_MATCHABLE(
     Chapters, chapters,
@@ -49,7 +48,7 @@ BookViewer::BookViewer(int x, int y, int w, int h)
 
 BookViewer::~BookViewer() noexcept
 {
-    // Global::Instance::grab().set_book_viewer(nullptr);
+    Data::nil.set_book_viewer(nullptr);
 }
 
 

@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 
     // assets
     std::string assets_dir = std::filesystem::path(argv[0]).parent_path();
-    assets_dir += "/../share/diggable/assets";
+    assets_dir += "/../share/diggable/images";
     assets_dir = std::filesystem::weakly_canonical(assets_dir);
     // std::cout << "assets_dir: '" << assets_dir << "'" << std::endl;
     Data::nil.set_assets_dir(assets_dir);

@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.17)
 
-project(diggable VERSION 0.1.0)
+project(diggable VERSION 17.17.17)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra")
@@ -24,7 +24,7 @@ if(matchmaker_DL STREQUAL "ON")
 else()
     get_filename_component(rpath_dir "${matchmaker_DIR}/.." REALPATH)
     set(CMAKE_INSTALL_RPATH "${rpath_dir}")
-    find_package(matchmaker 3.1.0 REQUIRED)
+    find_package(matchmaker 4.0.0 REQUIRED)
 endif()
 
 
@@ -79,15 +79,11 @@ target_include_directories(
 )
 
 
-file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME})
-add_custom_target(ex_assets ALL)
-add_custom_command(
-    TARGET ex_assets
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E tar xvf ${PROJECT_SOURCE_DIR}/data/assets.tar.gz
-    WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/diggable/
-    COMMENT "unpacking assets..."
-    VERBATIM
-)
-
 install(TARGETS diggable DESTINATION bin)
+
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME})
+install(
+    DIRECTORY
+    ${PROJECT_SOURCE_DIR}/data/images
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}
+)

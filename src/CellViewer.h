@@ -44,6 +44,7 @@ protected:
         int const * ancestors,
         int ancestor_count,
         int index_within_first_ancestor,
+        bool within_chapter_title,
         bool within_chapter_subtitle,
         Fl_Color draw_color,
         int & xp,
@@ -71,6 +72,7 @@ protected:
             book = -1;
             chapter = -1;
             paragraph = -1;
+            within_chapter_title = false;
             within_chapter_subtitle = false;
         }
         int term{-1};
@@ -84,6 +86,7 @@ protected:
         int book;
         int chapter;
         int paragraph;
+        bool within_chapter_title;
         bool within_chapter_subtitle;
     };
     static int const MAX_LINES{216};  // maxium visible lines

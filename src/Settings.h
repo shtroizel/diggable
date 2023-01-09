@@ -13,7 +13,7 @@
 using TermColors = matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>>;
 
 
-PROPERTYx13_MATCHABLE(
+PROPERTYx15_MATCHABLE(
     Fl_Color, background_color,
     Fl_Color, input_background_color,
     Fl_Color, highlight_color,
@@ -25,6 +25,8 @@ PROPERTYx13_MATCHABLE(
     int8_t, chapter_font_size,
     int8_t, min_font_size,
     int8_t, max_font_size,
+    int8_t, min_scrollbar_font_size,
+    int8_t, max_scrollbar_font_size,
     float, line_height_factor,
     int8_t, line_height,
 
@@ -44,6 +46,8 @@ MATCHABLE_NIL_PROPERTY_VALUE(Settings, hover_color, fl_darker(FL_MAGENTA))
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, term_stack_color, fl_rgb_color(255, 55, 5))
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, font_size, 14)
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, chapter_font_size, 21)
-MATCHABLE_NIL_PROPERTY_VALUE(Settings, max_font_size, 17)
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, min_font_size, 9)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, max_font_size, 21)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, min_scrollbar_font_size, 9)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, max_scrollbar_font_size, 14)
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, 1.26f)

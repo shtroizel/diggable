@@ -54,4 +54,5 @@ namespace Data
     void push_term_stack(int term, Viewer::Type caller);
     void refresh_completion_stack();
     void term_clicked(int term, int chapter, Viewer::Type caller);
+    void set_font_size(int fs);
 }

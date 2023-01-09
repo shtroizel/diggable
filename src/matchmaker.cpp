@@ -37,8 +37,11 @@ namespace matchmaker
     static bool (*shim_is_place)(int){nullptr};
     static bool (*shim_is_compound)(int){nullptr};
     static bool (*shim_is_acronym)(int){nullptr};
+    static bool (*shim_is_phrase)(int){nullptr};
+    static bool (*shim_is_used_in_book)(int, int){nullptr};
     static void (*shim_synonyms)(int, int const * *, int *){nullptr};
     static void (*shim_antonyms)(int, int const * *, int *){nullptr};
+    static void (*shim_definition)(int, int const * *, int *){nullptr};
     static void (*shim_embedded)(int, int const * *, int *){nullptr};
     static void (*shim_locations)(int,
                                   int const * *,
@@ -68,7 +71,7 @@ namespace matchmaker
         handle = dlmopen(LM_ID_NEWLM, so_filename, RTLD_NOW);
         if (nullptr == handle)
         {
-            MatchmakerStateInstance::Instance::grab().set_state(MatchmakerState::Unloaded::grab());
+            MatchmakerState::Instance::grab().set_state(LibraryState::Unloaded::grab());
             ret = dlerror();
             return ret;
         }
@@ -108,8 +111,11 @@ namespace matchmaker
         init_func(is_place);
         init_func(is_compound);
         init_func(is_acronym);
+        init_func(is_phrase);
+        init_func(is_used_in_book);
         init_func(synonyms);
         init_func(antonyms);
+        init_func(definition);
         init_func(embedded);
         init_func(locations);
         init_func(complete);
@@ -162,8 +168,11 @@ namespace matchmaker
         shim_is_place = nullptr;
         shim_is_compound = nullptr;
         shim_is_acronym = nullptr;
+        shim_is_phrase = nullptr;
+        shim_is_used_in_book = nullptr;
         shim_synonyms = nullptr;
         shim_antonyms = nullptr;
+        shim_definition = nullptr;
         shim_embedded = nullptr;
         shim_locations = nullptr;
         shim_complete = nullptr;
@@ -340,6 +349,24 @@ namespace matchmaker
     }
 
 
+    bool is_phrase(int index)
+    {
+        if (nullptr == shim_is_phrase)
+            return false;
+
+        return (*shim_is_phrase)(index);
+    }
+
+
+    bool is_used_in_book(int book_index, int index)
+    {
+        if (nullptr == shim_is_used_in_book)
+            return false;
+
+        return (*shim_is_used_in_book)(book_index, index);
+    }
+
+
     void synonyms(int index, int const * * syn_array, int * count)
     {
         if (nullptr == shim_synonyms)
@@ -363,6 +390,19 @@ namespace matchmaker
         }
 
         (*shim_antonyms)(index, ant_array, count);
+    }
+
+
+    void definition(int index, int const * * def, int * count)
+    {
+        if (nullptr == shim_definition)
+        {
+            *def = nullptr;
+            *count = 0;
+            return;
+        }
+
+        (*shim_definition)(index, def, count);
     }
 
 

@@ -61,6 +61,9 @@ CellViewer::~CellViewer() noexcept
 
 void CellViewer::draw()
 {
+    if (w() < scrollbar_width + scrollbar_label_width + 100 || h() < 17)
+        return;
+
     draw_content();
     draw_scrollbar();
     draw_scrollbar_labels();
@@ -130,7 +133,14 @@ void CellViewer::draw_scrollbar_labels()
     );
 
     fl_color(type().as_foreground_color());
-    fl_font(MONO_FONT, Settings::nil.as_font_size() - 3);
+
+    int scrollbar_font_size = Settings::nil.as_font_size() - 3;
+    if (scrollbar_font_size > Settings::nil.as_max_scrollbar_font_size())
+        scrollbar_font_size = Settings::nil.as_max_scrollbar_font_size();
+    if (scrollbar_font_size < Settings::nil.as_min_scrollbar_font_size())
+        scrollbar_font_size = Settings::nil.as_min_scrollbar_font_size();
+
+    fl_font(MONO_FONT, scrollbar_font_size);
 
     if (scrollbar_labels.size() == 0)
         return;
@@ -146,6 +156,9 @@ void CellViewer::draw_scrollbar_labels()
 
     int labels_printed = 0;
     int const line_height = Settings::nil.as_line_height();
+    if (line_height == 0)
+        return;
+
     int const min_gap = line_height * 2;
     int max_labels_to_print = 17;
     if (h() / min_gap < max_labels_to_print)
@@ -222,7 +235,8 @@ void CellViewer::draw_scrollbar_labels()
 int CellViewer::handle(int event)
 {
     hover_box_visible = false;
-    switch(event) {
+    switch(event)
+    {
         case FL_FULLSCREEN:
             // std::cout << "    --> FL_FULLSCREEN!" << std::endl;
             // [[fallthrough]];
@@ -321,9 +335,13 @@ int CellViewer::handle(int event)
             {
                 Data::nil.set_hover_image_path("");
 
+                int const line_height = Settings::nil.as_line_height();
+                if (line_height == 0)
+                    return 1;
+
                 int const ex = Fl::event_x();
                 // int const ey = Fl::event_y();
-                int const ty = (Fl::event_y() - y()) / Settings::nil.as_line_height();
+                int const ty = (Fl::event_y() - y()) / line_height;
                 int start{-1};
                 int end{-1};
                 int top{cells[ty][0].top};
@@ -333,15 +351,21 @@ int CellViewer::handle(int event)
                 int extra_height{0};
                 for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
                 {
-                    Cell & t = cells[ty][tx];
+                    Cell & c = cells[ty][tx];
 
-                    if (ex > t.start && ex < t.end &&
-                            (t.end - t.start > fl_width(" ") * 1.5 || t.term == index_of_space))
+                    if (c.within_chapter_title)
+                        continue;
+
+                    if (c.within_chapter_subtitle)
+                        continue;
+
+                    if (ex > c.start && ex < c.end &&
+                            (c.end - c.start > fl_width(" ") * 1.5 || c.term == index_of_space))
                     {
-                        start = t.start;
-                        end = t.end;
-                        top = t.top;
-                        height = t.height;
+                        start = c.start;
+                        end = c.end;
+                        top = c.top;
+                        height = c.height;
 
                         // std::cout << "Viewer::handle() --> hovered on term "
                         //           << std::to_string(t.term) << " ---> "
@@ -351,7 +375,7 @@ int CellViewer::handle(int event)
 
 
                         // handle parent selection
-                        if (t.term == index_of_space && t.ancestor_count > 0)
+                        if (c.term == index_of_space && c.ancestor_count > 0)
                         {
                             // only offer phrases that appear at least twice
                             int const * book_components = nullptr;
@@ -359,7 +383,7 @@ int CellViewer::handle(int event)
                             int const * paragraph_components = nullptr;
                             int const * word_components = nullptr;
                             int location_count = 0;
-                            matchmaker::locations(t.ancestors[0],
+                            matchmaker::locations(c.ancestors[0],
                                                   &book_components,
                                                   &chapter_components,
                                                   &paragraph_components,
@@ -438,7 +462,7 @@ int CellViewer::handle(int event)
                                 int const * a = cells[tyi][txi].ancestors;
                                 found = false;
                                 for (int ai = 0; !found && ai < cells[tyi][txi].ancestor_count; ++ai)
-                                    if (a[ai] == t.ancestors[0])
+                                    if (a[ai] == c.ancestors[0])
                                         found = true;
 
                                 related = found;
@@ -485,7 +509,7 @@ int CellViewer::handle(int event)
                                 int const * a = cells[tyi][txi].ancestors;
                                 found = false;
                                 for (int ai = 0; !found && ai < cells[tyi][txi].ancestor_count; ++ai)
-                                    if (a[ai] == t.ancestors[0])
+                                    if (a[ai] == c.ancestors[0])
                                         found = true;
 
                                 related = found;
@@ -523,7 +547,7 @@ int CellViewer::handle(int event)
 
                         // show image?
                         int s_len = 0;
-                        char const * s = matchmaker::at(t.term, &s_len);
+                        char const * s = matchmaker::at(c.term, &s_len);
                         if (s_len > 3)
                         {
                             if (s[0] == '~' && s[1] == '~' && s[2] == '~')
@@ -535,7 +559,7 @@ int CellViewer::handle(int event)
                                 std::string & image_path = Data::nil.as_mutable_hover_image_path();
                                 image_path = Data::nil.as_assets_dir();
                                 image_path += "/";
-                                image_path += std::to_string(t.chapter + 1);
+                                image_path += std::to_string(c.chapter + 1);
                                 image_path += "_";
                                 image_path += s;
                             }
@@ -595,18 +619,21 @@ int CellViewer::handle(int event)
                     diff_x *= -1;
 
                 int const max_diff = 17;
+                int const line_height = Settings::nil.as_line_height();
+                if (line_height == 0)
+                    return 1;
 
                 // if drag-scrolling then snap to line boundary
                 if (diff_y > max_diff || diff_x > max_diff)
                 {
-                    int const line_height = Settings::nil.as_line_height();
+
                     scroll_offset() = (scroll_offset() / line_height) * line_height;
                     if (scroll_offset() < 0)
                         scroll_offset() = 0;
                     else if (scroll_offset() > max_scroll_offset)
                         scroll_offset() = max_scroll_offset;
 
-                    hover_box_visible = false;
+                    // hover_box_visible = false;
 
                     // enforce minimum scroll amount
                     // int diff_scroll_offset = scroll_offset() - start_scroll_offset;
@@ -665,7 +692,8 @@ int CellViewer::handle(int event)
                                 term = c.ancestors[0];
                             }
 
-                            Data::term_clicked(term, c.chapter, type());
+                            if (!c.within_chapter_title && !c.within_chapter_subtitle)
+                                Data::term_clicked(term, c.chapter, type());
 
                             break;
                         }
@@ -718,6 +746,9 @@ void CellViewer::scroll_to_y(int ey)
     float dmax = h();
     float loc = ey / dmax;
     int const line_height = Settings::nil.as_line_height();
+    if (line_height == 0)
+        return;
+
     scroll_offset() = (((int) (loc * max_scroll_offset)) / line_height) * line_height;
     if (scroll_offset() > max_scroll_offset)
         scroll_offset() = max_scroll_offset;
@@ -787,6 +818,9 @@ void CellViewer::draw_content()
     int xi{0};
     int xp{content_x};
     int const line_height = Settings::nil.as_line_height();
+    if (line_height == 0)
+        return;
+
     int yp{y() + line_height};
     int initial_yp{yp};
     int ch_i = -1;
@@ -844,6 +878,7 @@ void CellViewer::draw_content()
                     nullptr,
                     0,
                     -1,
+                    true,
                     false,
                     type().as_chapter_title_color(),
                     xp,
@@ -911,6 +946,7 @@ void CellViewer::draw_content()
                     0,
                     -1,
                     true,
+                    false,
                     type().as_chapter_subtitle_color(),
                     xp,
                     yp,
@@ -955,6 +991,7 @@ void CellViewer::draw_content()
                     nullptr,
                     0,
                     -1,
+                    false,
                     true,
                     type().as_chapter_subtitle_color(),
                     xp,
@@ -993,6 +1030,7 @@ void CellViewer::draw_content()
                     nullptr,
                     0,
                     -1,
+                    true,
                     false,
                     type().as_chapter_title_color(),
                     xp,
@@ -1036,6 +1074,21 @@ void CellViewer::draw_content()
                 term = matchmaker::word(0, ch_i, p_i, w_i,
                                         &ancestors, &ancestor_count, &index_within_first_ancestor);
 
+                // int term_as_str_len = 0;
+                // char const * term_as_str = matchmaker::at(term, &term_as_str_len);
+                // std::cout << "term: (" << term << ", " << term_as_str_len << ") --> " << term_as_str << std::endl;
+
+                // int s_len = 0;
+                // const char * s = matchmaker::at(term, &s_len);
+                //
+                // if (s_len > 3)
+                // {
+                //     if (s[0] == '>' && s[1] == '>')
+                //     {
+                //
+                //     }
+                // }
+
                 // apply color from term or from ancestors if term's color is the foreground_color
                 Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
                 for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
@@ -1049,6 +1102,7 @@ void CellViewer::draw_content()
                     ancestors,
                     ancestor_count,
                     index_within_first_ancestor,
+                    false,
                     false,
                     draw_color,
                     xp,
@@ -1075,6 +1129,7 @@ void CellViewer::draw_content()
     if (offsets_dirty)
     {
         max_scroll_offset = ((int) (yp - h()) / line_height) * line_height;
+
         if (max_scroll_offset < 0)
             max_scroll_offset = 0;
         // std::cout << "Viewer::draw_content() -> chapter offsets up to date!   -->   max_scroll_offset: "
@@ -1104,6 +1159,7 @@ void CellViewer::append_term(
     int const * ancestors,
     int ancestor_count,
     int index_within_first_ancestor,
+    bool within_chapter_title,
     bool within_chapter_subtitle,
     Fl_Color draw_color,
     int & xp,
@@ -1116,6 +1172,8 @@ void CellViewer::append_term(
     char const * s = matchmaker::at(term, &s_len);
     int s_width = fl_width(" ") * s_len;
     int const line_height = Settings::nil.as_line_height();
+    if (line_height == 0)
+        return;
 
     int const available_width = (int) (content_width) / fl_width("Q");
 
@@ -1194,6 +1252,7 @@ void CellViewer::append_term(
                         cells[yi][xi].book = book;
                         cells[yi][xi].chapter = chapter;
                         cells[yi][xi].paragraph = paragraph;
+                        cells[yi][xi].within_chapter_title = within_chapter_title;
                         cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
 
                         term_visible = true;
@@ -1261,6 +1320,7 @@ void CellViewer::append_term(
                         cells[yi][xi].book = book;
                         cells[yi][xi].chapter = chapter;
                         cells[yi][xi].paragraph = paragraph;
+                        cells[yi][xi].within_chapter_title = within_chapter_title;
                         cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
 
                         term_visible = true;
@@ -1318,6 +1378,7 @@ void CellViewer::append_term(
             cells[yi][xi].book = book;
             cells[yi][xi].chapter = chapter;
             cells[yi][xi].paragraph = paragraph;
+            cells[yi][xi].within_chapter_title = within_chapter_title;
             cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
 
             term_visible = true;

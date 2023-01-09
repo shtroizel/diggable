@@ -30,8 +30,11 @@ namespace matchmaker
     bool is_place(int index);
     bool is_compound(int index);
     bool is_acronym(int index);
+    bool is_phrase(int index);
+    bool is_used_in_book(int book_index, int index);
     void synonyms(int index, int const * * syn_array, int * count);
     void antonyms(int index, int const * * ant_array, int * count);
+    void definition(int index, int const * * def, int * count);
     void embedded(int index, int const * * embedded_words, int * count);
     void locations(
         int index,
