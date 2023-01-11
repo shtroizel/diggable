@@ -736,7 +736,6 @@ void TermViewer::leave()
 void TermViewer::draw_search_bar()
 {
     int const prev_search_bar_height = search_bar_height;
-    double const width_of_single_char = fl_width("Q");
 
     // std::cout << "search_bar_height: " << search_bar_height << std::endl;
 
@@ -777,6 +776,7 @@ void TermViewer::draw_search_bar()
         xp += 17;
 
         fl_draw("-->", xp, yp);
+        double const width_of_single_char = fl_width("Q");
         xp += width_of_single_char;
         xp += width_of_single_char;
         xp += width_of_single_char;
@@ -796,6 +796,7 @@ void TermViewer::draw_search_bar()
         {
             fl_color(FL_BLACK);
 
+            double const width_of_single_char = fl_width("Q");
             int s_len{(int) cs.top().prefix.size()};
             char const * s = cs.top().prefix.c_str();
             int total_chars_written{0};
