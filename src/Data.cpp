@@ -40,10 +40,21 @@ namespace Data
             }
         }
 
+        // for each element we store a scroll offset for each viewer, but we are still
+        // learning what makes sense here and what does not. for now disable per-element
+        // scroll offsets for the book viewer as this has proven somewhat problematic.
+        // this will either be completely removed from term stack elements or offered as
+        // an optional feature once the usefulness if any is determined...
+        int prev_bv_scroll_offset = ts.back().bv_scroll_offset;
+
         ts.pop_back();
 
         // get the top of the word stack
         auto & [t, bv_scroll_offset, ds, lv_scroll_offset] = ts.back();
+
+        // as stated above, override/disable per-term scroll offsets for book viewer until more
+        // is learned...
+        bv_scroll_offset = prev_bv_scroll_offset;
 
         std::string s;
 
