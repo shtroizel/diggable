@@ -14,7 +14,6 @@
 
 MainWindow::MainWindow(int w, int h, char const * t) : Fl_Double_Window(w, h, t)
 {
-    // float middle_proportion = 0.333;
     float middle_proportion = (1/1.618) * (1/1.618) * (1/1.618);
     begin();
     Fl_Group * group = new Fl_Group(0, 0, w, h);

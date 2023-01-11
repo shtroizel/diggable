@@ -136,6 +136,22 @@ std::vector<std::pair<int, std::string>> const & BookViewer::chapters()
             }();
 
 
+
+
+
+
+
+
+
+    // TODO REFACTORME ELIMINATE duplicate code used to create the various by_* orders
+
+
+
+
+
+
+
+
     // by second order
     static std::vector<std::pair<int, std::string>> const by_second =
             []()

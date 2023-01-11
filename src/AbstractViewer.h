@@ -1,6 +1,5 @@
 #pragma once
 
-#include <FL/Enumerations.H>
 #include <FL/Fl_Widget.H>
 
 #include <matchable/matchable_fwd.h>
