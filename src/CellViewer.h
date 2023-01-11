@@ -33,6 +33,8 @@ public:
     void leave();
     void mark_dirty() { offsets_dirty = true; }
 
+    virtual std::vector<std::pair<int, std::string>> const & chapters() = 0;
+
 
 protected:
     void set_chapters(std::vector<int> const & chapters);
@@ -98,7 +100,6 @@ protected:
 
 
 private:
-    virtual std::vector<std::pair<int, std::string>> const & chapters() = 0;
     virtual int & scroll_offset() = 0;
 
     void draw_scrollbar();

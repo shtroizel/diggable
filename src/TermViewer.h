@@ -50,9 +50,9 @@ private:
     int lines_to_scroll_at_a_time{1};
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
-    bool go_to_chapter_mode{false};
-    std::array<int8_t, 7> go_to_chapter_input;
-    int8_t go_to_chapter_digits_entered{0};
+    bool go_to_mode{false};
+    std::array<int8_t, 7> bang_input;
+    int8_t bang_entered_digit_count{0};
     int mouse_start_x{0};
     int mouse_start_y{0};
     int start_cs_display_start{0};

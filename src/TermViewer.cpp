@@ -40,7 +40,7 @@ TermViewer::TermViewer(int x, int y, int w, int h)
     , button_bar_height{17 + 17}
 {
     search_bar_height = single_line_search_bar_height();
-    for (int8_t & i : go_to_chapter_input)
+    for (int8_t & i : bang_input)
         i = 0;
 }
 
@@ -99,11 +99,11 @@ int TermViewer::handle(int event)
                 switch (Fl::event_key())
                 {
                     case ESC:
-                        if (go_to_chapter_mode)
+                        if (go_to_mode)
                         {
-                            go_to_chapter_mode = false;
-                            go_to_chapter_digits_entered = 0;
-                            for (int8_t & i : go_to_chapter_input)
+                            go_to_mode = false;
+                            bang_entered_digit_count = 0;
+                            for (int8_t & i : bang_input)
                                 i = 0;
                         }
                         else
@@ -114,23 +114,26 @@ int TermViewer::handle(int event)
 
                     case KP_ENTER:
                     case ENTER:
-                        if (go_to_chapter_mode)
+                        if (go_to_mode)
                         {
+                            BookViewer * bv = Data::nil.as_book_viewer();
+                            SortingOrder::Type so;
+                            if (nullptr != bv)
+                                so = bv->sorting_order();
+
                             int factor = 1;
                             int sum = 0;
-                            for (int8_t i = go_to_chapter_digits_entered; i-- > 0;)
+                            for (int8_t i = bang_entered_digit_count; i-- > 0;)
                             {
-                                sum += go_to_chapter_input[i] * factor;
+                                sum += bang_input[i] * factor;
                                 factor *= 10;
                             }
 
-                            BookViewer * bv = Data::nil.as_book_viewer();
-                            if (nullptr != bv)
-                                bv->scroll_to_offset(sum - 1);
+                            so.as_bang_func()(sum);
 
-                            go_to_chapter_mode = false;
-                            go_to_chapter_digits_entered = 0;
-                            for (int8_t & i : go_to_chapter_input)
+                            go_to_mode = false;
+                            bang_entered_digit_count = 0;
+                            for (int8_t & i : bang_input)
                                 i = 0;
                         }
                         else
@@ -164,7 +167,7 @@ int TermViewer::handle(int event)
                         break;
 
                     case UP:
-                        if (!go_to_chapter_mode)
+                        if (!go_to_mode)
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             cs.top().display_start -= 1;
@@ -175,7 +178,7 @@ int TermViewer::handle(int event)
                         break;
 
                     case DOWN:
-                        if (!go_to_chapter_mode)
+                        if (!go_to_mode)
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             std::vector<int> const & c = cs.top().standard_completion;
@@ -187,12 +190,12 @@ int TermViewer::handle(int event)
                         break;
 
                     case BKSPC:
-                        if (go_to_chapter_mode)
+                        if (go_to_mode)
                         {
-                            if (go_to_chapter_digits_entered > 0)
+                            if (bang_entered_digit_count > 0)
                             {
-                                --go_to_chapter_digits_entered;
-                                go_to_chapter_input[go_to_chapter_digits_entered] = 0;
+                                --bang_entered_digit_count;
+                                bang_input[bang_entered_digit_count] = 0;
                             }
                         }
                         else
@@ -202,7 +205,7 @@ int TermViewer::handle(int event)
                         break;
 
                     case DELETE:
-                        if (!go_to_chapter_mode)
+                        if (!go_to_mode)
                             Data::pop_term_stack();
                         break;
 
@@ -214,19 +217,19 @@ int TermViewer::handle(int event)
 
                             int key = s[0];
 
-                            if (go_to_chapter_mode)
+                            if (go_to_mode)
                             {
-                                if (go_to_chapter_digits_entered < (int) go_to_chapter_input.size() &&
+                                if (bang_entered_digit_count < (int) bang_input.size() &&
                                         key >= '0' && key <= '9')
                                 {
-                                    go_to_chapter_input[go_to_chapter_digits_entered++] = key - '0';
+                                    bang_input[bang_entered_digit_count++] = key - '0';
                                 }
                             }
                             else
                             {
                                 // if (key == '!' && Data::nil.as_completion_stack().count() == 1)
                                 if (key == '!')
-                                    go_to_chapter_mode = true;
+                                    go_to_mode = true;
                                 else
                                     cs.push(key);
                             }
@@ -500,12 +503,12 @@ int TermViewer::handle(int event)
                         ex > x() + w() - margins - 17 * 2
                     )
                     {
-                        if (go_to_chapter_mode)
+                        if (go_to_mode)
                         {
-                            if (go_to_chapter_digits_entered > 0)
+                            if (bang_entered_digit_count > 0)
                             {
-                                --go_to_chapter_digits_entered;
-                                go_to_chapter_input[go_to_chapter_digits_entered] = 0;
+                                --bang_entered_digit_count;
+                                bang_input[bang_entered_digit_count] = 0;
                             }
                         }
                         else
@@ -575,7 +578,7 @@ int TermViewer::handle(int event)
                         // while (cs.count() > 1)
                         //     cs.pop();
 
-                        go_to_chapter_mode = true;
+                        go_to_mode = true;
                         redraw();
                     }
 
@@ -589,7 +592,15 @@ int TermViewer::handle(int event)
                         if (nullptr != Data::nil.as_book_viewer())
                         {
                             BookViewer * bv = Data::nil.as_book_viewer();
-                            bv->use_by_month_order(!bv->using_by_month_order());
+                            int so_index = bv->sorting_order().as_index() + 1;
+                            if (so_index == (int) bv->sorting_order().variants().size())
+                                so_index = 0;
+
+                            SortingOrder::Type so = SortingOrder::from_index(so_index);
+                            if (so.is_nil())
+                                std::cout << "TermViewer::handle() --> BUG DETECTED --> "
+                                             "sorting order is NIL!!!" << std::endl;
+                            bv->set_sorting_order(so);
                             bv->redraw();
                         }
                     }
@@ -725,6 +736,7 @@ void TermViewer::leave()
 void TermViewer::draw_search_bar()
 {
     int const prev_search_bar_height = search_bar_height;
+    double const width_of_single_char = fl_width("Q");
 
     // std::cout << "search_bar_height: " << search_bar_height << std::endl;
 
@@ -750,21 +762,32 @@ void TermViewer::draw_search_bar()
 
     int const line_height = (int) (fl_size() * Settings::nil.as_line_height_factor());
 
-    if (go_to_chapter_mode)
+    if (go_to_mode)
     {
         fl_color(FL_BLACK);
         int yp = y() + margins + search_bar_height / 2;
         int xp = x() + margins * 2;
 
-        fl_draw("go to chapter -> ", xp, yp);
-
-        xp += 17 * fl_width('Q');
-
-        for (int i = 0; i < go_to_chapter_digits_entered; ++i)
+        BookViewer const * bv = Data::nil.as_book_viewer();
+        if (nullptr != bv)
         {
-            std::string s = std::to_string(go_to_chapter_input[i]);
+            SortingOrder::Type so = bv->sorting_order();
+            fl_draw(so.as_string().c_str(), xp, yp);
+        }
+        xp += 17;
+
+        fl_draw("-->", xp, yp);
+        xp += width_of_single_char;
+        xp += width_of_single_char;
+        xp += width_of_single_char;
+        xp += width_of_single_char;
+
+
+        for (int i = 0; i < bang_entered_digit_count; ++i)
+        {
+            std::string s = std::to_string(bang_input[i]);
             fl_draw(s.c_str(), xp, yp);
-            xp += fl_width('q');
+            xp += width_of_single_char;
         }
     }
     else
@@ -775,7 +798,6 @@ void TermViewer::draw_search_bar()
 
             int s_len{(int) cs.top().prefix.size()};
             char const * s = cs.top().prefix.c_str();
-            double const width_of_single_char = fl_width("Q");
             int total_chars_written{0};
             int chars_to_write{0};
             int const max_chars_to_write = (int) ((w() - margins * 4 - 17 * 2) / width_of_single_char);
@@ -1140,13 +1162,12 @@ void TermViewer::draw_button_bar()
     );
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
-    {
-        BookViewer * bv = Data::nil.as_book_viewer();
-        if (nullptr != bv && bv->using_by_month_order())
-            fl_color(Settings::nil.as_highlight_color());
-    }
+    BookViewer * bv = Data::nil.as_book_viewer();
+    if (nullptr != bv && bv->sorting_order() != SortingOrder::_hsh_::grab())
+        fl_color(Settings::nil.as_highlight_color());
+
     fl_draw(
-        "Δ",
+        bv->sorting_order().as_string().c_str(),
         x() + w() * ((button_count / 2) - 2) / button_count + margins,
         y() + h() - button_bar_height,
         w() / button_count - margins * 2,
