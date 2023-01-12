@@ -1355,7 +1355,7 @@ void CellViewer::append_term(
             int draw_len = s_len;
             if (draw_len > available_width)
             {
-                std::cout << "CellViewer::append_term() --> wrapping failed!" << std::endl;
+//                std::cout << "CellViewer::append_term() --> wrapping failed!" << std::endl;
                 draw_len = available_width;
             }
 
