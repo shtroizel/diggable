@@ -147,21 +147,12 @@ int TermViewer::handle(int event)
                                 int ds = cs.top().display_start;
                                 if (ds > (int) c.size() - 1)
                                     ds = (int) c.size() - 1;
-                                else if (ds < 0)
+                                if (ds < 0)
                                     ds = 0;
 
                                 int selected = ts.back().selected_term;
-                                if (selected == -1)
-                                {
-                                    Data::term_clicked(c[ds], -1, Viewer::TermViewer::grab());
-                                }
-                                else
-                                {
-                                    std::string selected_as_string = matchmaker::at(selected, nullptr);
-                                    std::string first_result = matchmaker::at(c[ds], nullptr);
-                                    if (selected_as_string != first_result)
-                                        Data::term_clicked(c[ds], -1, Viewer::TermViewer::grab());
-                                }
+                                if (selected == -1 || selected != c[ds])
+                                    Data::term_clicked(c[ds], Viewer::TermViewer::grab());
                             }
                         }
                         break;
@@ -172,7 +163,28 @@ int TermViewer::handle(int event)
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             cs.top().display_start -= 1;
                             if (cs.top().display_start < 0)
+                            {
                                 cs.top().display_start = 0;
+                            }
+                            else
+                            {
+                                std::vector<int> & c = cs.top().standard_completion;
+                                TermStack const & ts = Data::nil.as_term_stack();
+
+                                if (c.size() > 0)
+                                {
+                                    int ds = cs.top().display_start;
+                                    if (ds > (int) c.size() - 1)
+                                        ds = (int) c.size() - 1;
+                                    if (ds < 0)
+                                        ds = 0;
+
+                                    int selected = ts.back().selected_term;
+                                    if (selected == -1 || selected != c[ds])
+                                        Data::term_clicked(c[ds], Viewer::TermViewer::grab());
+                                }
+                            }
+
                             redraw();
                         }
                         break;
@@ -182,9 +194,30 @@ int TermViewer::handle(int event)
                         {
                             CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                             std::vector<int> const & c = cs.top().standard_completion;
+
                             cs.top().display_start += 1;
                             if (cs.top().display_start > (int) c.size() - 1)
+                            {
                                 cs.top().display_start = c.size() - 1;
+                            }
+                            else
+                            {
+                                std::vector<int> & c = cs.top().standard_completion;
+                                TermStack const & ts = Data::nil.as_term_stack();
+
+                                if (c.size() > 0)
+                                {
+                                    int ds = cs.top().display_start;
+                                    if (ds > (int) c.size() - 1)
+                                        ds = (int) c.size() - 1;
+                                    if (ds < 0)
+                                        ds = 0;
+
+                                    int selected = ts.back().selected_term;
+                                    if (selected == -1 || selected != c[ds])
+                                        Data::term_clicked(c[ds], Viewer::TermViewer::grab());
+                                }
+                            }
                             redraw();
                         }
                         break;
@@ -540,7 +573,14 @@ int TermViewer::handle(int event)
                         if (ci >= (int) c.size() - cs.top().display_start)
                             return 1;
 
-                        Data::term_clicked(c[ci] + cs.top().display_start, -1, Viewer::TermViewer::grab());
+                        matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>> & term_colors =
+                                Settings::nil.as_mutable_term_colors();
+
+                        auto & tc = term_colors.mut_at(type());
+
+                        if (tc[c[ci] + cs.top().display_start] != Settings::nil.as_highlight_color())
+                            Data::term_clicked(c[ci] + cs.top().display_start, Viewer::TermViewer::grab());
+
                         redraw();
                     }
 
@@ -558,7 +598,7 @@ int TermViewer::handle(int event)
                         if (i > 0 && i < (int) ts.size() - 1)
                         {
                             // std::cout << "term stack clicked!" << std::endl;
-                            Data::term_clicked(ts[i].selected_term, -1, Viewer::BookViewer::grab());
+                            Data::term_clicked(ts[i].selected_term, Viewer::BookViewer::grab());
                             redraw();
                         }
                         else
@@ -1002,8 +1042,8 @@ void TermViewer::draw_image(std::string const & image_path)
 
     if (!std::filesystem::exists(image_path))
     {
-        std::cout << "image_path: '" << image_path
-                  << "' does not exist!" << std::endl;
+        // std::cout << "image_path: '" << image_path
+        //           << "' does not exist!" << std::endl;
         return;
     }
 

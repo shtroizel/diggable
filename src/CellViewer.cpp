@@ -40,6 +40,14 @@ CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
         abort();
     }
 
+    index_of_slash = matchmaker::lookup("/", &ok);
+    if (!ok)
+    {
+        std::cout << "Viewer::Viewer() --> failed to find index of slash!" << std::endl;
+        index_of_slash = -1;
+        abort();
+    }
+
     index_of_comma = matchmaker::lookup(",", &ok);
     if (!ok)
     {
@@ -334,6 +342,7 @@ int CellViewer::handle(int event)
         case FL_MOVE:
             {
                 Data::nil.set_hover_image_path("");
+                Settings::nil.set_hover_color(Settings::nil.as_hover_color_multi_loc());
 
                 int const line_height = Settings::nil.as_line_height();
                 if (line_height == 0)
@@ -359,8 +368,14 @@ int CellViewer::handle(int event)
                     if (c.within_chapter_subtitle)
                         continue;
 
-                    if (ex > c.start && ex < c.end &&
-                            (c.end - c.start > fl_width(" ") * 1.5 || c.term == index_of_space))
+                    if (
+                        ex > c.start && ex < c.end &&
+                        (
+                            c.end - c.start > fl_width("Q") * 1.5 ||
+                            c.term == index_of_space ||
+                            c.term == index_of_slash
+                        )
+                    )
                     {
                         start = c.start;
                         end = c.end;
@@ -375,7 +390,13 @@ int CellViewer::handle(int event)
 
 
                         // handle parent selection
-                        if (c.term == index_of_space && c.ancestor_count > 0)
+                        if (
+                            c.ancestor_count > 0 &&
+                            (
+                                c.term == index_of_space ||
+                                c.term == index_of_slash
+                            )
+                        )
                         {
                             // only offer phrases that appear at least twice
                             int const * book_components = nullptr;
@@ -389,8 +410,9 @@ int CellViewer::handle(int event)
                                                   &paragraph_components,
                                                   &word_components,
                                                   &location_count);
+
                             if (location_count < 2)
-                                break;
+                                Settings::nil.set_hover_color(Settings::nil.as_hover_color_single_loc());
 
 
                             auto prev_term =
@@ -534,6 +556,24 @@ int CellViewer::handle(int event)
                                 prev_tyi = tyi;
                             }
                         }
+                        else
+                        {
+                            // only offer termsr that appear at least twice
+                            int const * book_components = nullptr;
+                            int const * chapter_components = nullptr;
+                            int const * paragraph_components = nullptr;
+                            int const * word_components = nullptr;
+                            int location_count = 0;
+                            matchmaker::locations(c.term,
+                                                  &book_components,
+                                                  &chapter_components,
+                                                  &paragraph_components,
+                                                  &word_components,
+                                                  &location_count);
+
+                            if (location_count < 2)
+                                Settings::nil.set_hover_color(Settings::nil.as_hover_color_single_loc());
+                        }
 
                         if (end > content_x + content_width - HOVER_BOX_MARGIN_SIZE)
                             end = content_x + content_width - HOVER_BOX_MARGIN_SIZE;
@@ -557,11 +597,21 @@ int CellViewer::handle(int event)
                                 ++s;
 
                                 std::string & image_path = Data::nil.as_mutable_hover_image_path();
-                                image_path = Data::nil.as_assets_dir();
-                                image_path += "/";
-                                image_path += std::to_string(c.chapter + 1);
-                                image_path += "_";
-                                image_path += s;
+
+                                if (c.within_linked_text)
+                                {
+                                    image_path = Data::nil.as_linked_text_image_dir();
+                                    image_path += "/";
+                                    image_path += s;
+                                }
+                                else
+                                {
+                                    image_path = Data::nil.as_image_dir();
+                                    image_path += "/";
+                                    image_path += std::to_string(c.chapter + 1);
+                                    image_path += "_";
+                                    image_path += s;
+                                }
                             }
                         }
 
@@ -670,7 +720,13 @@ int CellViewer::handle(int event)
                             term = c.term;
 
                             // activate parent term instead when over space between terms
-                            if (c.term == index_of_space && c.ancestor_count > 0)
+                            if (
+                                c.ancestor_count > 0 &&
+                                (
+                                    c.term == index_of_space ||
+                                    c.term == index_of_slash
+                                )
+                            )
                             {
                                 // // but only offer phrases that appear at least twice,
                                 // // so get the location_count
@@ -693,7 +749,7 @@ int CellViewer::handle(int event)
                             }
 
                             if (!c.within_chapter_title && !c.within_chapter_subtitle)
-                                Data::term_clicked(term, c.chapter, type());
+                                Data::term_clicked(term, type(), &c);
 
                             break;
                         }
@@ -813,8 +869,6 @@ void CellViewer::draw_content()
         for (int t = 0; t < MAX_CELLS_PER_LINE; ++t)
             cells[l][t].reset();
 
-    // bool prev_term_visible{false};
-    bool term_visible{false};
     int xi{0};
     int xp{content_x};
     int const line_height = Settings::nil.as_line_height();
@@ -880,17 +934,13 @@ void CellViewer::draw_content()
                     -1,
                     true,
                     false,
+                    false,
                     type().as_chapter_title_color(),
                     xp,
                     yp,
-                    xi,
-                    term_visible
+                    xi
                 );
-                // if (!prev_term_visible && term_visible)
-                // {
-                //     // first_visible_chapter = ch_i;
-                //     prev_term_visible = true;
-                // }
+
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
@@ -922,9 +972,9 @@ void CellViewer::draw_content()
             subtitle_width_2 = (int) (subtitle_width_2 * fl_width('q'));
 
             // yp += line_height;
-            xp = content_x + (content_width - subtitle_width_1);
             // xi = 0;
-
+            // xp = content_x;
+            xp = content_x + (content_width - subtitle_width_1);
 
             matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
             for (int i = 0; i < term_count; ++i)
@@ -945,14 +995,15 @@ void CellViewer::draw_content()
                     nullptr,
                     0,
                     -1,
+                    false,
                     true,
                     false,
                     type().as_chapter_subtitle_color(),
                     xp,
                     yp,
-                    xi,
-                    term_visible
+                    xi
                 );
+
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
@@ -993,12 +1044,13 @@ void CellViewer::draw_content()
                     -1,
                     false,
                     true,
+                    false,
                     type().as_chapter_subtitle_color(),
                     xp,
                     yp,
-                    xi,
-                    term_visible
+                    xi
                 );
+
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
@@ -1032,12 +1084,13 @@ void CellViewer::draw_content()
                     -1,
                     true,
                     false,
+                    false,
                     type().as_chapter_title_color(),
                     xp,
                     yp,
-                    xi,
-                    term_visible
+                    xi
                 );
+
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
             }
@@ -1069,31 +1122,37 @@ void CellViewer::draw_content()
         for (p_i = 0; p_i < p_count; ++p_i)
         {
             w_count = matchmaker::word_count(0, ch_i, p_i);
+
             for (w_i = 0; w_i < w_count; ++w_i)
             {
                 term = matchmaker::word(0, ch_i, p_i, w_i,
                                         &ancestors, &ancestor_count, &index_within_first_ancestor);
-
-                // int term_as_str_len = 0;
-                // char const * term_as_str = matchmaker::at(term, &term_as_str_len);
-                // std::cout << "term: (" << term << ", " << term_as_str_len << ") --> " << term_as_str << std::endl;
-
-                // int s_len = 0;
-                // const char * s = matchmaker::at(term, &s_len);
-                //
-                // if (s_len > 3)
-                // {
-                //     if (s[0] == '>' && s[1] == '>')
-                //     {
-                //
-                //     }
-                // }
 
                 // apply color from term or from ancestors if term's color is the foreground_color
                 Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
                 for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
                     draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
 
+                // check for linked text
+                bool term_is_linked_text = false;
+                if (w_i == 0)
+                {
+                    int s_len = 0;
+                    const char * s = matchmaker::at(term, &s_len);
+
+                    if (s_len > 3 && s[0] == '>' && s[1] == '>')
+                    {
+                        term_is_linked_text = true;
+                        for (int si = 2; term_is_linked_text && si < s_len; ++si)
+                            term_is_linked_text = s[si] >= '0' && s[si] <= '9';
+                    }
+                }
+
+                // linked handle & text color lightened unless selected
+                if (term_is_linked_text)
+                    draw_color = fl_lighter(draw_color);
+
+                // draw term
                 append_term(
                     term,
                     0,
@@ -1104,16 +1163,65 @@ void CellViewer::draw_content()
                     index_within_first_ancestor,
                     false,
                     false,
+                    false,
                     draw_color,
                     xp,
                     yp,
-                    xi,
-                    term_visible
+                    xi
                 );
 
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
+
+                // draw linked text
+                if (term_is_linked_text)
+                {
+                    // std::cout << "\ndrawing linked text! --> [" << term << "] --> " << matchmaker::at(term, nullptr) << std::endl;
+                    int const * def = nullptr;
+                    int def_count = 0;
+                    matchmaker::definition(term, &def, &def_count);
+
+                    if (def_count > 0)
+                    {
+                        for (int di = 0; di < def_count; ++di)
+                        {
+                            Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[def[di]];
+
+                            for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
+                                draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
+
+                            draw_color = fl_lighter(draw_color);
+                            xi = 0;
+                            xp = content_x + 17;
+                            yp += line_height;
+
+                            // std::cout << matchmaker::at(def[di], nullptr) << std::endl;
+                            append_term(
+                                def[di],
+                                0,
+                                ch_i,
+                                p_i,
+                                ancestors,
+                                ancestor_count,
+                                index_within_first_ancestor,
+                                false,
+                                false,
+                                true,
+                                draw_color,
+                                xp,
+                                yp,
+                                xi
+                            );
+
+                            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+                                return;
+                        }
+
+                        yp += line_height;
+                    }
+                }
             }
+
             yp += line_height;
             xp = content_x;
             xi = 0;
@@ -1161,13 +1269,18 @@ void CellViewer::append_term(
     int index_within_first_ancestor,
     bool within_chapter_title,
     bool within_chapter_subtitle,
+    bool within_linked_text,
     Fl_Color draw_color,
     int & xp,
     int & yp,
-    int & xi,
-    bool & term_visible
+    int & xi
+    // , bool & term_visible
 )
 {
+    // so sorry to anyone reading the code in this function
+
+
+
     int s_len{0};
     char const * s = matchmaker::at(term, &s_len);
     int s_width = fl_width(" ") * s_len;
@@ -1254,12 +1367,13 @@ void CellViewer::append_term(
                         cells[yi][xi].paragraph = paragraph;
                         cells[yi][xi].within_chapter_title = within_chapter_title;
                         cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
+                        cells[yi][xi].within_linked_text = within_linked_text;
 
-                        term_visible = true;
+                        // term_visible = true;
                     }
                     else
                     {
-                        term_visible = false;
+                        // term_visible = false;
                     }
                     xp += cur_chars_to_write * fl_width("Q");
                     if (yi < MAX_LINES)
@@ -1322,12 +1436,13 @@ void CellViewer::append_term(
                         cells[yi][xi].paragraph = paragraph;
                         cells[yi][xi].within_chapter_title = within_chapter_title;
                         cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
+                        cells[yi][xi].within_linked_text = within_linked_text;
 
-                        term_visible = true;
+                        // term_visible = true;
                     }
                     else
                     {
-                        term_visible = false;
+                        // term_visible = false;
                     }
                     xp += cur_chars_to_write * fl_width("Q");
                     ++xi;
@@ -1380,12 +1495,13 @@ void CellViewer::append_term(
             cells[yi][xi].paragraph = paragraph;
             cells[yi][xi].within_chapter_title = within_chapter_title;
             cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
+            cells[yi][xi].within_linked_text = within_linked_text;
 
-            term_visible = true;
+            // term_visible = true;
         }
         else
         {
-            term_visible = false;
+            // term_visible = false;
         }
         xp += s_width;
         if (yi < MAX_LINES)
@@ -1395,7 +1511,7 @@ void CellViewer::append_term(
     else
     {
         xp += s_width;
-        term_visible = false;
+        // term_visible = false;
     }
 }
 

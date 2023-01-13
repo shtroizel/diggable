@@ -10,6 +10,7 @@ by index required!
 #include <matchable/matchable.h>
 
 #include <CompletionStack.h>
+#include <Cell.h>
 
 
 
@@ -31,13 +32,14 @@ class LocationViewer;
 
 
 
-PROPERTYx8_MATCHABLE(
+PROPERTYx9_MATCHABLE(
     BookViewer *, book_viewer,
     TermViewer *, term_viewer,
     LocationViewer *, location_viewer,
     CompletionStack, completion_stack,
     TermStack, term_stack,
-    std::string, assets_dir,
+    std::string, image_dir,
+    std::string, linked_text_image_dir,
     std::string, hover_image_path,
     std::string, click_image_path,
 
@@ -53,6 +55,6 @@ namespace Data
     bool pop_term_stack();
     void push_term_stack(int term, Viewer::Type caller);
     void refresh_completion_stack();
-    void term_clicked(int term, int chapter, Viewer::Type caller);
+    void term_clicked(int term, Viewer::Type caller, Cell const * cell = nullptr);
     void set_font_size(int fs);
 }

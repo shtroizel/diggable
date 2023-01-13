@@ -19,6 +19,10 @@ int const MONO_FONT{4};
 
 namespace Data
 {
+
+    void update_copy_buf();
+
+
     bool pop_term_stack()
     {
         TermStack & ts = Data::nil.as_mutable_term_stack();
@@ -77,6 +81,8 @@ namespace Data
 
         cs.top().display_start = ds;
 
+        update_copy_buf();
+
         BookViewer * book_viewer = Data::nil.as_book_viewer();
         TermViewer * term_viewer = Data::nil.as_term_viewer();
         LocationViewer * location_viewer = Data::nil.as_location_viewer();
@@ -110,7 +116,6 @@ namespace Data
 
         // std::cout << "push_term_stack(" << term << ") --> current size: " << ts.size() << std::endl;
 
-
         if (term == -1)
         {
             std::cout << "push_term_stack() --> ERROR: tried to push -1!" << std::endl;
@@ -137,6 +142,8 @@ namespace Data
 
         if (caller != Viewer::TermViewer::grab())
             refresh_completion_stack();
+
+        update_copy_buf();
 
         BookViewer * book_viewer = Data::nil.as_book_viewer();
         TermViewer * term_viewer = Data::nil.as_term_viewer();
@@ -183,7 +190,7 @@ namespace Data
 
 
 
-    void term_clicked(int term, int chapter, Viewer::Type caller)
+    void term_clicked(int term, Viewer::Type caller, Cell const * cell)
     {
         // std::cout << "clicked on term: " << term << std::endl;
         auto & term_colors = Settings::nil.as_mutable_term_colors();
@@ -195,65 +202,64 @@ namespace Data
             return;
         }
 
+        {
+            int const cur_selected_term = ts.back().selected_term;
+
+            // if clicked on a term other than selected
+            if (term_colors.at(caller)[term] == caller.as_foreground_color())
+            {
+                // remove "selected" highlighting from current "selected" term
+                if (-1 != cur_selected_term)
+                    term_colors.mut_at(caller)[cur_selected_term] = caller.as_foreground_color();
+
+                // push term onto the word stack
+                push_term_stack(term, caller);
+            }
+            else // we clicked on the currently selected term!
+            {
+                // pop term from the word stack
+                pop_term_stack();
+            }
+        }
+
+        if (ts.empty())
+            return;
+
         int const cur_selected_term = ts.back().selected_term;
-        // std::cout << "cur_selected_term: " << cur_selected_term << std::endl;
-        // int to_become_selected = -1;
 
-        // if clicked on a term other than selected
-        if (term_colors.at(caller)[term] == caller.as_foreground_color())
-        {
-            // apply "selected" highlighting to clicked on term
-            // term_colors[term] = Settings::nil.as_highlight_color();
-
-            // term is to become "selected"
-            // to_become_selected = term;
-
-            // if clicked on the slected term, but its color is somehow missing
-            if (cur_selected_term == term)
-            {
-                std::cout << "CellViewer::on_term_clicked() --> "
-                                "applied missing color to selected term!" << std::endl;
-                return;
-            }
-
-            // remove "selected" highlighting from current "selected" term
-            if (-1 != cur_selected_term)
-            {
-                // std::cout << "removing color from: " << cur_selected_term << std::endl;
-                term_colors.mut_at(caller)[cur_selected_term] =
-                        caller.as_foreground_color();
-            }
-
-            // push term onto the word stack
-            push_term_stack(term, caller);
-        }
-        else // we clicked on the currently selected term!
-        {
-            // remove "selected" highlighting from the clicked term
-            // term_colors[term] = Settings::nil.as_foreground_color();
-
-            if (cur_selected_term != term)
-            {
-                std::cout << "CellViewer::handle() --> FL_PUSH --> removed selected "
-                                "color from term other than selected" << std::endl;
-                return;
-            }
-
-            // pop term from the word stack
-            pop_term_stack();
-        }
-
+        // image filenames are prefixed by chapter unless they appear within a linked post
         // if no chapter info given then try to get from location_viewer.
-        if (chapter == -1)
+        bool omit_chapter_prefix = false;
+        int chapter = -1;
+        if (nullptr == cell)
         {
+
             LocationViewer * lv = Data::nil.as_location_viewer();
             if (nullptr != lv)
+            {
                 chapter = lv->first_chapter();
+
+                bool within_main_text = false;
+                for (int pi = 0; !within_main_text &&  pi < matchmaker::paragraph_count(0, chapter); ++pi)
+                    for (int wi = 0; !within_main_text && wi < matchmaker::word_count(0, chapter, pi); ++wi)
+                        within_main_text =
+                                matchmaker::word(0, chapter, pi, wi, nullptr, nullptr, nullptr) ==
+                                cur_selected_term;
+
+                if (!within_main_text)
+                    omit_chapter_prefix = true;
+            }
+        }
+        else
+        {
+            chapter = cell->chapter;
         }
 
         // show image?
         int s_len = 0;
-        char const * s = matchmaker::at(term, &s_len);
+        char const * s = matchmaker::at(cur_selected_term, &s_len);
+        // int const cur_selected_term = ts.back().selected_term;
+        // char const * s = matchmaker::at(cur_selected_term, &s_len);
         if (chapter != -1 && s_len > 3 && s[0] == '~' && s[1] == '~' && s[2] == '~')
         {
             ++s;
@@ -261,17 +267,43 @@ namespace Data
             ++s;
 
             std::string & image_path = Data::nil.as_mutable_click_image_path();
-            image_path = Data::nil.as_assets_dir();
-            image_path += "/";
-            image_path += std::to_string(chapter + 1);
-            image_path += "_";
-            image_path += s;
+
+            if (omit_chapter_prefix || (nullptr != cell && cell->within_linked_text))
+            {
+                image_path = Data::nil.as_linked_text_image_dir();
+                image_path += "/";
+                image_path += s;
+            }
+            else
+            {
+                image_path = Data::nil.as_image_dir();
+                image_path += "/";
+                image_path += std::to_string(chapter + 1);
+                image_path += "_";
+                image_path += s;
+            }
         }
         else
         {
             Data::nil.set_click_image_path("");
         }
     }
+
+
+
+    void update_copy_buf()
+    {
+        TermStack const & ts = Data::nil.as_term_stack();
+        if (ts.empty())
+            return;
+
+        int const selected_term = ts.back().selected_term;
+        int s_len;
+        char const * s = matchmaker::at(selected_term, &s_len);
+
+        Fl::copy(s, s_len, 2);
+    }
+
 
 
     void set_font_size(int fs)

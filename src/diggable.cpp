@@ -45,12 +45,22 @@ int main(int argc, char **argv)
     }
     ts.push_back({ -1, 0, 0, 0 });
 
-    // assets
-    std::string assets_dir = std::filesystem::path(argv[0]).parent_path();
-    assets_dir += "/../share/diggable/images";
-    assets_dir = std::filesystem::weakly_canonical(assets_dir);
-    // std::cout << "assets_dir: '" << assets_dir << "'" << std::endl;
-    Data::nil.set_assets_dir(assets_dir);
+    // images
+    {
+        std::string image_dir = std::filesystem::path(argv[0]).parent_path();
+        image_dir += "/../share/diggable/images";
+        image_dir = std::filesystem::weakly_canonical(image_dir);
+        // std::cout << "assets_dir: '" << assets_dir << "'" << std::endl;
+        Data::nil.set_image_dir(image_dir);
+    }
+
+    {
+        std::string linked_text_image_dir = std::filesystem::path(argv[0]).parent_path();
+        linked_text_image_dir += "/../share/diggable/images_within_linked_text";
+        linked_text_image_dir = std::filesystem::weakly_canonical(linked_text_image_dir);
+        // std::cout << "assets_dir: '" << assets_dir << "'" << std::endl;
+        Data::nil.set_linked_text_image_dir(linked_text_image_dir);
+    }
 
     Fl::set_fonts("-*");
     Fl::visual(FL_RGB);

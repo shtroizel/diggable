@@ -6,6 +6,7 @@
 
 #include <matchable/matchable.h>
 
+#include <Cell.h>
 #include <Data.h>
 
 
@@ -48,49 +49,13 @@ protected:
         int index_within_first_ancestor,
         bool within_chapter_title,
         bool within_chapter_subtitle,
+        bool within_linked_text,
         Fl_Color draw_color,
         int & xp,
         int & yp,
-        int & xi,
-        bool & term_visible
+        int & xi
     );
 
-    struct Cell
-    {
-        Cell()
-        {
-            reset();
-        }
-        void reset()
-        {
-            term = -1;
-            ancestors = nullptr;
-            ancestor_count = 0;
-            index_within_first_ancestor = -1;
-            start = -1;
-            end = -1;
-            top = -1;
-            height = -1;
-            book = -1;
-            chapter = -1;
-            paragraph = -1;
-            within_chapter_title = false;
-            within_chapter_subtitle = false;
-        }
-        int term{-1};
-        int const * ancestors;
-        int ancestor_count;
-        int index_within_first_ancestor;
-        int start;
-        int end;
-        int top;
-        int height;
-        int book;
-        int chapter;
-        int paragraph;
-        bool within_chapter_title;
-        bool within_chapter_subtitle;
-    };
     static int const MAX_LINES{216};  // maxium visible lines
     static int const MAX_CELLS_PER_LINE{210};  // maxium visible terms per line
     Cell cells[MAX_LINES][MAX_CELLS_PER_LINE];
@@ -127,6 +92,7 @@ private:
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
     int index_of_space{-1};
+    int index_of_slash{-1};
     int index_of_comma{-1};
     bool mouse_down{false};
     int mouse_start_y{0};
