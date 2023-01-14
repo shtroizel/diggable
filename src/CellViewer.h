@@ -28,6 +28,7 @@ public:
     CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl);
     ~CellViewer() noexcept;
     void draw() override;
+    void resize(int x, int y, int w, int h) override;
     int handle(int event) override;
     void scroll_to_offset(int offset);
     void scroll_to_y(int ey);
@@ -39,7 +40,7 @@ public:
 
 protected:
     void set_chapters(std::vector<int> const & chapters);
-    void append_term(
+    void draw_cell(
         int term,
         int book,
         int chapter,

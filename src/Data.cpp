@@ -19,7 +19,9 @@ int const MONO_FONT{4};
 
 namespace Data
 {
-
+    void refresh_completion_stack();
+    bool pop_term_stack();
+    void push_term_stack(int term, Viewer::Type caller);
     void update_copy_buf();
 
 
@@ -133,6 +135,9 @@ namespace Data
         int bv_scroll_offset = ts.back().bv_scroll_offset;
 
         ts.push_back({ term, bv_scroll_offset, 0, 0 });
+        if (ts.size() > 17 + 1) // bottom is -1 and needs to be retained
+            ts.erase(ts.begin() + 1);
+
         selected = ts.back().selected_term;
         if (selected != -1)
         {
@@ -223,12 +228,15 @@ namespace Data
         }
 
         if (ts.empty())
+        {
+            Data::nil.set_click_image_path("");
             return;
+        }
 
         int const cur_selected_term = ts.back().selected_term;
 
         // image filenames are prefixed by chapter unless they appear within a linked post
-        // if no chapter info given then try to get from location_viewer.
+        // if no chapter info given then try to get one from location_viewer.
         bool omit_chapter_prefix = false;
         int chapter = -1;
         if (nullptr == cell)
@@ -329,5 +337,24 @@ namespace Data
             Data::nil.as_location_viewer()->mark_dirty();
             Data::nil.as_location_viewer()->redraw();
         }
+    }
+
+
+
+    void restore_image()
+    {
+        Data::nil.set_image_maximized(false);
+
+        TermViewer * tv = Data::nil.as_term_viewer();
+        if (nullptr != tv)
+            tv->redraw();
+
+        BookViewer * bv = Data::nil.as_book_viewer();
+        if (nullptr != bv)
+            bv->redraw();
+
+        LocationViewer * lv = Data::nil.as_location_viewer();
+        if (nullptr != lv)
+            lv->redraw();
     }
 }

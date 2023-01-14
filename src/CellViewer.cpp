@@ -69,6 +69,9 @@ CellViewer::~CellViewer() noexcept
 
 void CellViewer::draw()
 {
+    if (Data::nil.as_image_shown() && Data::nil.as_image_maximized())
+        return;
+
     if (w() < scrollbar_width + scrollbar_label_width + 100 || h() < 17)
         return;
 
@@ -240,24 +243,36 @@ void CellViewer::draw_scrollbar_labels()
 }
 
 
+void CellViewer::resize(int x_, int y_, int w_, int h_)
+{
+    Fl_Widget::resize(x_, y_, w_, h_);
+
+    reposition();
+    offsets_dirty = true;
+    // redraw();
+    if (scroll_offset() > max_scroll_offset)
+        scroll_offset() = max_scroll_offset;
+    redraw();
+}
+
+
 int CellViewer::handle(int event)
 {
     hover_box_visible = false;
     switch(event)
     {
+        case FL_NO_EVENT:
+            // std::cout << "CellViewer::handle() --> FL_NO_EVENT" << std::endl;
+            return 0;
         case FL_FULLSCREEN:
             // std::cout << "    --> FL_FULLSCREEN!" << std::endl;
             // [[fallthrough]];
-        case FL_NO_EVENT:
         case FL_FOCUS:
             reposition();
             offsets_dirty = true;
-            redraw();
             if (scroll_offset() > max_scroll_offset)
-            {
                 scroll_offset() = max_scroll_offset;
-                redraw();
-            }
+            redraw();
             return 0;
         case FL_ENTER:
             {
@@ -269,6 +284,9 @@ int CellViewer::handle(int event)
             }
         case FL_PUSH:
             {
+                if (Data::nil.as_image_maximized())
+                    return 1;
+
                 int const ex = Fl::event_x();
                 int const ey = Fl::event_y();
                 mouse_down = true;
@@ -341,6 +359,9 @@ int CellViewer::handle(int event)
 
         case FL_MOVE:
             {
+                if (Data::nil.as_image_maximized())
+                    return 0;
+
                 Data::nil.set_hover_image_path("");
                 Settings::nil.set_hover_color(Settings::nil.as_hover_color_multi_loc());
 
@@ -657,7 +678,11 @@ int CellViewer::handle(int event)
             return 1;
 
         case FL_RELEASE:
-            if (!dragging_scroller)
+            if (Data::nil.as_image_maximized())
+            {
+                Data::restore_image();
+            }
+            else if (!dragging_scroller)
             {
                 int const ey = Fl::event_y();
                 int const ex = Fl::event_x();
@@ -924,7 +949,7 @@ void CellViewer::draw_content()
             xp = content_x + 17;
             for (int i = 0; i < term_count; ++i)
             {
-                append_term(
+                draw_cell(
                     terms[i],
                     0,
                     ch_i,
@@ -987,7 +1012,7 @@ void CellViewer::draw_content()
                     continue;
                 }
 
-                append_term(
+                draw_cell(
                     terms[i],
                     0,
                     ch_i,
@@ -1034,7 +1059,7 @@ void CellViewer::draw_content()
                     continue;
                 }
 
-                append_term(
+                draw_cell(
                     terms[i],
                     0,
                     ch_i,
@@ -1074,7 +1099,7 @@ void CellViewer::draw_content()
             xi = xi_subtitle_line_1;
             for (int i = 0; i < term_count; ++i)
             {
-                append_term(
+                draw_cell(
                     terms[i],
                     0,
                     ch_i,
@@ -1153,7 +1178,7 @@ void CellViewer::draw_content()
                     draw_color = fl_lighter(draw_color);
 
                 // draw term
-                append_term(
+                draw_cell(
                     term,
                     0,
                     ch_i,
@@ -1196,7 +1221,7 @@ void CellViewer::draw_content()
                             yp += line_height;
 
                             // std::cout << matchmaker::at(def[di], nullptr) << std::endl;
-                            append_term(
+                            draw_cell(
                                 def[di],
                                 0,
                                 ch_i,
@@ -1259,7 +1284,7 @@ void CellViewer::draw_content()
 
 
 
-void CellViewer::append_term(
+void CellViewer::draw_cell(
     int term,
     int book,
     int chapter,

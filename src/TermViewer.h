@@ -34,8 +34,9 @@ private:
     void draw_completion();
     void draw_info_area();
     void draw_synonyms();
-    void draw_image(std::string const & image_path);
+    bool draw_image(std::string const & image_path);
     void draw_term_stack();
+    void draw_sorting_order_button_bar();
     void draw_button_bar();
     int term_stack_height() const;
     int single_line_search_bar_height() const;
