@@ -3,8 +3,17 @@ diggable provides a graphical interface to the books provided by the matchmaker 
 note that matchmaker's book feature is new and that currently only one book is offered<br/>
 for information about matchmaker see https://github.com/shtroizel/matchmaker
 
+## dependencies
+although diggable is developed to run on Artix Linux, diggable might also run on other Artix-like
+operating systems
+<br/>
+matchmaker requires a compiler, CMake, and Python; diggable requires FLTK
+```
+pacman -Sy base-devel cmake python fltk
+```
+
 ## clone and initialize matchmaker
-instructions here will assume a username of "shtroizel" and will clone both matchmaker and diggable
+for this example we will assume a username of "shtroizel" and will clone both matchmaker and diggable
 into /home/shtroizel/repos - adjust the clone and/or build and/or install paths as needed.
 ```
 cd /home/shtroizel
@@ -21,7 +30,7 @@ however you like. Use the "-q" option to not only significantly reduce the compi
 to reduce diggable's startup time. Also, using the "-q" option will improve the usability of
 "term viewer" (middle part of diggable interface), by only completing terms that actually exist
 within the book. From within /home/shtroizel/repos/matchmaker (or wherever you cloned yours) and
-adjusting for today's date or whatever convention you like, do something like:
+adjusting for today's date or whatever convention you prefer, do something like:
 ```
 ./scripts/build_and_install.py -b build_2023-01-08 -i /home/shtroizel/matchmaker_2023-01-08 -q
 ```
@@ -54,12 +63,15 @@ Always run the installed diggable...
 /home/shtroizel/repos/diggable/install_2023-01-08/bin/diggable
 ```
 
-## updates
-remember when pulling changes to matchmaker to afterward run:
+## updating diggable
+remember when pulling changes to matchmaker to also update submodules - for example:
 ```
+cd /home/shtroizel/repos/diggable
+git pull --rebase
+cd /home/shtroizel/repos/matchmaker
+git pull --rebase
 git submodule update --init --recursive
 ```
-this step can be skipped for the diggable repository.
 
 ## donating to this project
 donations are greatly appreciated, thank you!<br>
