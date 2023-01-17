@@ -207,25 +207,13 @@ namespace Data
             return;
         }
 
-        {
-            int const cur_selected_term = ts.back().selected_term;
+        // if clicked on a term other than selected
+        if (term_colors.at(caller)[term] == caller.as_foreground_color())
+            push_term_stack(term, caller);
 
-            // if clicked on a term other than selected
-            if (term_colors.at(caller)[term] == caller.as_foreground_color())
-            {
-                // remove "selected" highlighting from current "selected" term
-                if (-1 != cur_selected_term)
-                    term_colors.mut_at(caller)[cur_selected_term] = caller.as_foreground_color();
-
-                // push term onto the word stack
-                push_term_stack(term, caller);
-            }
-            else // we clicked on the currently selected term!
-            {
-                // pop term from the word stack
-                pop_term_stack();
-            }
-        }
+        // we clicked on the currently selected term!
+        else
+            pop_term_stack();
 
         if (ts.empty())
         {
@@ -245,14 +233,24 @@ namespace Data
             LocationViewer * lv = Data::nil.as_location_viewer();
             if (nullptr != lv)
             {
+                // get chapter from location viewer
                 chapter = lv->first_chapter();
 
+                // but check to make sure that the image was not within linked text
                 bool within_main_text = false;
+                bool within_linked_text = false;
                 for (int pi = 0; !within_main_text &&  pi < matchmaker::paragraph_count(0, chapter); ++pi)
                     for (int wi = 0; !within_main_text && wi < matchmaker::word_count(0, chapter, pi); ++wi)
-                        within_main_text =
-                                matchmaker::word(0, chapter, pi, wi, nullptr, nullptr, nullptr) ==
-                                cur_selected_term;
+                        within_main_text = matchmaker::word(
+                                               0,
+                                               chapter,
+                                               pi,
+                                               wi,
+                                               nullptr,
+                                               nullptr,
+                                               nullptr,
+                                               &within_linked_text
+                                           ) == cur_selected_term && !within_linked_text;
 
                 if (!within_main_text)
                     omit_chapter_prefix = true;

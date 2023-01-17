@@ -1143,6 +1143,7 @@ void CellViewer::draw_content()
         int const * ancestors{nullptr};
         int ancestor_count{0};
         int index_within_first_ancestor{-1};
+        bool term_is_linked_text{0};
         Fl_Color foreground_color = type().as_foreground_color();
         for (p_i = 0; p_i < p_count; ++p_i)
         {
@@ -1150,28 +1151,13 @@ void CellViewer::draw_content()
 
             for (w_i = 0; w_i < w_count; ++w_i)
             {
-                term = matchmaker::word(0, ch_i, p_i, w_i,
-                                        &ancestors, &ancestor_count, &index_within_first_ancestor);
+                term = matchmaker::word(0, ch_i, p_i, w_i, &ancestors, &ancestor_count,
+                                        &index_within_first_ancestor, &term_is_linked_text);
 
                 // apply color from term or from ancestors if term's color is the foreground_color
                 Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
                 for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
                     draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
-
-                // check for linked text
-                bool term_is_linked_text = false;
-                if (w_i == 0)
-                {
-                    int s_len = 0;
-                    const char * s = matchmaker::at(term, &s_len);
-
-                    if (s_len > 3 && s[0] == '>' && s[1] == '>')
-                    {
-                        term_is_linked_text = true;
-                        for (int si = 2; term_is_linked_text && si < s_len; ++si)
-                            term_is_linked_text = s[si] >= '0' && s[si] <= '9';
-                    }
-                }
 
                 // linked handle & text color lightened unless selected
                 if (term_is_linked_text)
@@ -1188,7 +1174,7 @@ void CellViewer::draw_content()
                     index_within_first_ancestor,
                     false,
                     false,
-                    false,
+                    term_is_linked_text,
                     draw_color,
                     xp,
                     yp,
@@ -1197,54 +1183,6 @@ void CellViewer::draw_content()
 
                 if (!offsets_dirty && yp + line_height - scroll_offset() > h())
                     return;
-
-                // draw linked text
-                if (term_is_linked_text)
-                {
-                    // std::cout << "\ndrawing linked text! --> [" << term << "] --> " << matchmaker::at(term, nullptr) << std::endl;
-                    int const * def = nullptr;
-                    int def_count = 0;
-                    matchmaker::definition(term, &def, &def_count);
-
-                    if (def_count > 0)
-                    {
-                        for (int di = 0; di < def_count; ++di)
-                        {
-                            Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[def[di]];
-
-                            for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
-                                draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
-
-                            draw_color = fl_lighter(draw_color);
-                            xi = 0;
-                            xp = content_x + 17;
-                            yp += line_height;
-
-                            // std::cout << matchmaker::at(def[di], nullptr) << std::endl;
-                            draw_cell(
-                                def[di],
-                                0,
-                                ch_i,
-                                p_i,
-                                ancestors,
-                                ancestor_count,
-                                index_within_first_ancestor,
-                                false,
-                                false,
-                                true,
-                                draw_color,
-                                xp,
-                                yp,
-                                xi
-                            );
-
-                            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-                                return;
-                        }
-
-                        yp += line_height;
-                    }
-                }
             }
 
             yp += line_height;
