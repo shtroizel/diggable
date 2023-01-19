@@ -23,6 +23,8 @@ PROPERTYx1_MATCHABLE(
     place,
     compound,
     acronym,
+    phrase,
+    used_spc_in_spc_Crumbs,
     all_spc_labels_spc_missing  // must be last entry! see all_labels_missing()
 )
 
@@ -37,6 +39,11 @@ static bool all_labels_missing(int word)
 }
 
 
+static bool used_in_Crumbs(int term)
+{
+    return matchmaker::is_used_in_book(0, term);
+}
+
 
 MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, name, func, &matchmaker::is_name);
 MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, male_spc_name, func, &matchmaker::is_male_name);
@@ -44,32 +51,58 @@ MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, female_spc_name, func, &matchma
 MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, place, func, &matchmaker::is_place);
 MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, compound, func, &matchmaker::is_compound);
 MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, acronym, func, &matchmaker::is_acronym);
+MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, phrase, func, &matchmaker::is_phrase);
+MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, used_spc_in_spc_Crumbs, func, &used_in_Crumbs);
 MATCHABLE_VARIANT_PROPERTY_VALUE(word_attribute, all_spc_labels_spc_missing, func, &all_labels_missing);
 
 MATCHABLE(filter_direction, exclusive, inclusive)
+MATCHABLE(filter_logic, or_logic, and_logic)
 
 struct word_filter
 {
     word_attribute::Flags attributes;
     filter_direction::Type direction{filter_direction::exclusive::grab()};
+    filter_logic::Type logic{filter_logic::and_logic::grab()};
 
     bool passes(int word) const
     {
-        if (direction == filter_direction::exclusive::grab())
+        if (logic == filter_logic::or_logic::grab())
         {
-            for (auto att : attributes.currently_set())
-                if (att.as_func()(word))
-                    return false;
+            if (direction == filter_direction::exclusive::grab())
+            {
+                for (auto att : attributes.currently_set())
+                    if (att.as_func()(word))
+                        return false;
 
-            return true;
+                return true;
+            }
+            else if (direction == filter_direction::inclusive::grab())
+            {
+                for (auto att : attributes.currently_set())
+                    if (att.as_func()(word))
+                        return true;
+
+                return false;
+            }
         }
-        else if (direction == filter_direction::inclusive::grab())
+        else if (logic == filter_logic::and_logic::grab())
         {
-            for (auto att : attributes.currently_set())
-                if (att.as_func()(word))
-                    return true;
+            if (direction == filter_direction::exclusive::grab())
+            {
+                for (auto att : attributes.currently_set())
+                    if (!att.as_func()(word))
+                        return true;
 
-            return false;
+                return 0 == attributes.currently_set().size();
+            }
+            else if (direction == filter_direction::inclusive::grab())
+            {
+                for (auto att : attributes.currently_set())
+                    if (!att.as_func()(word))
+                        return false;
+
+                return true;
+            }
         }
 
         return false;

@@ -11,6 +11,10 @@
 CompletionStack::CompletionStack()
 {
     clear_top();
+#ifndef Q_ONLY
+    wf.direction = filter_direction::inclusive::grab();
+    wf.attributes.set(word_attribute::used_spc_in_spc_Crumbs::grab());
+#endif
 }
 
 

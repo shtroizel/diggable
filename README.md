@@ -26,11 +26,10 @@ git submodule update --init --recursive
 
 ## building matchmaker
 I recommend using dates for build and install directories, but of course you can name these
-however you like. Use the "-q" option to not only significantly reduce the compile time, but also
-to reduce diggable's startup time. Also, using the "-q" option will improve the usability of
-"term viewer" (middle part of diggable interface), by only completing terms that actually exist
-within the book. From within /home/shtroizel/repos/matchmaker (or wherever you cloned yours) and
-adjusting for today's date or whatever convention you prefer, do something like:
+however you like. I also recommend using the "-q" option to not only significantly reduce the compile
+time, but also to reduce diggable's startup time. From within /home/shtroizel/repos/matchmaker (or
+wherever you cloned yours) and adjusting for today's date or whatever convention you prefer,
+do something like:
 ```
 ./scripts/build_and_install.py -b build_2023-01-08 -i /home/shtroizel/matchmaker_2023-01-08 -q
 ```
@@ -48,7 +47,8 @@ git clone https://github.com/shtroizel/diggable.git
 For this example we will build in /home/shtroizel/repos/diggable/build_2023-01-08 and install to
 /home/shtroizel/repos/diggable/install_2023-01-08. Of course change this to whatever you like, but note
 that diggable must be installed to work properly - running diggable from the build directory is not
-supported
+supported. Also, if you used the -q option when building matchmaker (recommended), then make sure you
+also specify -Dq=1 on your cmake line here (this is not deduced from the matchmaker_DIR).
 ```
 cd /home/shtroizel/repos/diggable
 mkdir build_2023-01-08
