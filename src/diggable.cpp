@@ -54,14 +54,6 @@ int main(int argc, char **argv)
         Data::nil.set_image_dir(image_dir);
     }
 
-    {
-        std::string linked_text_image_dir = std::filesystem::path(argv[0]).parent_path();
-        linked_text_image_dir += "/../share/diggable/images_within_linked_text";
-        linked_text_image_dir = std::filesystem::weakly_canonical(linked_text_image_dir);
-        // std::cout << "assets_dir: '" << assets_dir << "'" << std::endl;
-        Data::nil.set_linked_text_image_dir(linked_text_image_dir);
-    }
-
     Fl::set_fonts("-*");
     Fl::visual(FL_RGB);
     MainWindow * window = new MainWindow(1111, 777, "dig deeper");

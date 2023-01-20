@@ -33,7 +33,7 @@ class MainWindow;
 
 
 
-PROPERTYx13_MATCHABLE(
+PROPERTYx12_MATCHABLE(
     BookViewer *, book_viewer,
     TermViewer *, term_viewer,
     LocationViewer *, location_viewer,
@@ -41,7 +41,6 @@ PROPERTYx13_MATCHABLE(
     CompletionStack, completion_stack,
     TermStack, term_stack,
     std::string, image_dir,
-    std::string, linked_text_image_dir,
     std::string, hover_image_path,
     std::string, click_image_path,
     int8_t, image_shown,
@@ -59,7 +58,7 @@ MATCHABLE_FWD(Viewer)
 
 namespace Data
 {
-    void term_clicked(int term, Viewer::Type caller, Cell const * cell = nullptr);
+    void term_clicked(int term, Viewer::Type caller);
     void set_font_size(int fs);
     void restore_image();
 }

@@ -88,9 +88,3 @@ install(
     ${PROJECT_SOURCE_DIR}/data/images
     DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}
 )
-
-install(
-    DIRECTORY
-    ${PROJECT_SOURCE_DIR}/data/images_within_linked_text
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}
-)

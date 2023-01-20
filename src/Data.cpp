@@ -195,7 +195,7 @@ namespace Data
 
 
 
-    void term_clicked(int term, Viewer::Type caller, Cell const * cell)
+    void term_clicked(int term, Viewer::Type caller)
     {
         // std::cout << "clicked on term: " << term << std::endl;
         auto & term_colors = Settings::nil.as_mutable_term_colors();
@@ -223,50 +223,10 @@ namespace Data
 
         int const cur_selected_term = ts.back().selected_term;
 
-        // image filenames are prefixed by chapter unless they appear within a linked post
-        // if no chapter info given then try to get one from location_viewer.
-        bool omit_chapter_prefix = false;
-        int chapter = -1;
-        if (nullptr == cell)
-        {
-
-            LocationViewer * lv = Data::nil.as_location_viewer();
-            if (nullptr != lv)
-            {
-                // get chapter from location viewer
-                chapter = lv->first_chapter();
-
-                // but check to make sure that the image was not within linked text
-                bool within_main_text = false;
-                bool within_linked_text = false;
-                for (int pi = 0; !within_main_text &&  pi < matchmaker::paragraph_count(0, chapter); ++pi)
-                    for (int wi = 0; !within_main_text && wi < matchmaker::word_count(0, chapter, pi); ++wi)
-                        within_main_text = matchmaker::word(
-                                               0,
-                                               chapter,
-                                               pi,
-                                               wi,
-                                               nullptr,
-                                               nullptr,
-                                               nullptr,
-                                               &within_linked_text
-                                           ) == cur_selected_term && !within_linked_text;
-
-                if (!within_main_text)
-                    omit_chapter_prefix = true;
-            }
-        }
-        else
-        {
-            chapter = cell->chapter;
-        }
-
         // show image?
         int s_len = 0;
         char const * s = matchmaker::at(cur_selected_term, &s_len);
-        // int const cur_selected_term = ts.back().selected_term;
-        // char const * s = matchmaker::at(cur_selected_term, &s_len);
-        if (chapter != -1 && s_len > 3 && s[0] == '~' && s[1] == '~' && s[2] == '~')
+        if (s_len > 3 && s[0] == '~' && s[1] == '~' && s[2] == '~')
         {
             ++s;
             ++s;
@@ -274,20 +234,9 @@ namespace Data
 
             std::string & image_path = Data::nil.as_mutable_click_image_path();
 
-            if (omit_chapter_prefix || (nullptr != cell && cell->within_linked_text))
-            {
-                image_path = Data::nil.as_linked_text_image_dir();
-                image_path += "/";
-                image_path += s;
-            }
-            else
-            {
-                image_path = Data::nil.as_image_dir();
-                image_path += "/";
-                image_path += std::to_string(chapter + 1);
-                image_path += "_";
-                image_path += s;
-            }
+            image_path = Data::nil.as_image_dir();
+            image_path += "/";
+            image_path += s;
         }
         else
         {

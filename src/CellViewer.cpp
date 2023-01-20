@@ -618,21 +618,9 @@ int CellViewer::handle(int event)
                                 ++s;
 
                                 std::string & image_path = Data::nil.as_mutable_hover_image_path();
-
-                                if (c.within_linked_text)
-                                {
-                                    image_path = Data::nil.as_linked_text_image_dir();
-                                    image_path += "/";
-                                    image_path += s;
-                                }
-                                else
-                                {
-                                    image_path = Data::nil.as_image_dir();
-                                    image_path += "/";
-                                    image_path += std::to_string(c.chapter + 1);
-                                    image_path += "_";
-                                    image_path += s;
-                                }
+                                image_path = Data::nil.as_image_dir();
+                                image_path += "/";
+                                image_path += s;
                             }
                         }
 
@@ -774,7 +762,7 @@ int CellViewer::handle(int event)
                             }
 
                             if (!c.within_chapter_title && !c.within_chapter_subtitle)
-                                Data::term_clicked(term, type(), &c);
+                                Data::term_clicked(term, type());
 
                             break;
                         }
