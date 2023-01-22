@@ -673,13 +673,10 @@ int TermViewer::handle(int event)
                         ey < y() + h() - button_bar_height * 2 - tsh
                     )
                     {
-                        std::string image_path = Data::nil.as_hover_image_path();
+                        std::string image_path = Data::nil.as_click_image_path();
                         if (image_path.empty())
-                        {
-                            image_path = Data::nil.as_click_image_path();
-                            if (image_path.empty())
-                                return 1;
-                        }
+                            return 1;
+
                         if (!Data::nil.as_image_maximized())
                         {
                             Data::nil.set_image_maximized(true);
