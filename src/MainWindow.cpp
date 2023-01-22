@@ -85,8 +85,8 @@ bool MainWindow::draw_image(std::string const & image_path)
 {
     if (!std::filesystem::exists(image_path))
     {
-        std::cout << "MainWindow::draw_image() --> image_path: '" << image_path
-                  << "' does not exist!" << std::endl;
+        // std::cout << "MainWindow::draw_image() --> image_path: '" << image_path
+        //           << "' does not exist!" << std::endl;
         return false;
     }
 

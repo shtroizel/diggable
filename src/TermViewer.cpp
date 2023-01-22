@@ -1291,8 +1291,8 @@ bool TermViewer::draw_image(std::string const & image_path)
 {
     if (!std::filesystem::exists(image_path))
     {
-        std::cout << "image_path: '" << image_path
-                  << "' does not exist!" << std::endl;
+        // std::cout << "image_path: '" << image_path
+        //           << "' does not exist!" << std::endl;
         return false;
     }
 
