@@ -721,7 +721,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::_hsh_::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -737,7 +737,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::Y::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -753,7 +753,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::M::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -769,7 +769,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::D::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -785,7 +785,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::h::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -801,7 +801,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::m::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -817,7 +817,7 @@ int TermViewer::handle(int event)
                         if (nullptr != bv)
                         {
                             bv->set_sorting_order(SortingOrder::s::grab());
-                            bv->redraw();
+                            bv->scroll_to_chapter_index(0);
                         }
                     }
 
@@ -839,22 +839,6 @@ int TermViewer::handle(int event)
                         ex < x() + w() * ((button_count / 2) - 1) / button_count - margins
                     )
                     {
-                        // if (nullptr != Data::nil.as_book_viewer())
-                        // {
-                        //     BookViewer * bv = Data::nil.as_book_viewer();
-                        //     int so_index = bv->sorting_order().as_index() + 1;
-                        //     if (so_index == (int) bv->sorting_order().variants().size())
-                        //         so_index = 0;
-                        //
-                        //     SortingOrder::Type so = SortingOrder::from_index(so_index);
-                        //     if (so.is_nil())
-                        //         std::cout << "TermViewer::handle() --> BUG DETECTED --> "
-                        //                      "sorting order is NIL!!!" << std::endl;
-                        //     bv->set_sorting_order(so);
-                        //     bv->redraw();
-                        // }
-
-
                         TermStack const & ts = Data::nil.as_term_stack();
                         int term = ts.back().selected_term;
                         Data::term_clicked(term, type());
