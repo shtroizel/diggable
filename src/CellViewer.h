@@ -101,8 +101,8 @@ private:
     int mouse_start_y{0};
     int mouse_start_x{0};
     int start_scroll_offset{0};
-    int chapter_offset{0};
-    int saved_chapter_offset{0};
+    int chapter_offset{-1};
+    int saved_chapter_offset{-1};
     bool restore_saved_chapter_offset{false};
     std::chrono::_V2::system_clock::time_point resize_start;
 

@@ -258,7 +258,9 @@ void CellViewer::resize()
     if (duration.count() > 17 * 17 * 17)
     {
         resize_start = now;
-        saved_chapter_offset = chapter_offset + 1;
+        saved_chapter_offset = chapter_offset;
+        if (saved_chapter_offset > 0)
+            ++saved_chapter_offset;
     }
 
     reposition();
