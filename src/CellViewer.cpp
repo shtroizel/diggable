@@ -259,7 +259,6 @@ void CellViewer::resize()
     {
         resize_start = now;
         saved_chapter_offset = chapter_offset + 1;
-        std::cout << "CellViewer::resize() --> saved_chapter_offset: " << saved_chapter_offset << std::endl;
     }
 
     reposition();
@@ -1214,7 +1213,9 @@ void CellViewer::draw_cell(
 {
     // so sorry to anyone reading the code in this function
 
-
+    int const xp_start = within_linked_text ? content_x + 17 : content_x;
+    if (xp == content_x && within_linked_text)
+        xp = xp_start;
 
     int s_len{0};
     char const * s = matchmaker::at(term, &s_len);
@@ -1229,7 +1230,7 @@ void CellViewer::draw_cell(
     {
         if (s_width <= (content_width - xp) + content_width && xp != content_x)
         {
-            xp = content_x;
+            xp = xp_start;
             yp += line_height;
             xi = 0;
         }
@@ -1237,7 +1238,7 @@ void CellViewer::draw_cell(
         {
             if (s_width > (content_width - xp) + content_width && xp != content_x)
             {
-                xp = content_x;
+                xp = xp_start;
                 yp += line_height;
                 xi = 0;
             }
@@ -1255,7 +1256,7 @@ void CellViewer::draw_cell(
             while (total_chars_written < s_len)
             {
                 ++wrapped_line_count;
-                xp = content_x;
+                xp = xp_start;
                 xi = 0;
 
                 cur_chars_to_write = s_len - total_chars_written;
