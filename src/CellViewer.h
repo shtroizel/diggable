@@ -2,6 +2,7 @@
 
 #include <AbstractViewer.h>
 
+#include <chrono>
 #include <vector>
 
 #include <matchable/matchable.h>
@@ -29,8 +30,9 @@ public:
     ~CellViewer() noexcept;
     void draw() override;
     void resize(int x, int y, int w, int h) override;
+    void resize();
     int handle(int event) override;
-    void scroll_to_offset(int offset);
+    void scroll_to_chapter_index(int offset);
     void scroll_to_y(int ey);
     void leave();
     void mark_dirty() { offsets_dirty = true; }
@@ -99,6 +101,10 @@ private:
     int mouse_start_y{0};
     int mouse_start_x{0};
     int start_scroll_offset{0};
+    int chapter_offset{0};
+    int saved_chapter_offset{0};
+    bool restore_saved_chapter_offset{false};
+    std::chrono::_V2::system_clock::time_point resize_start;
 
     // (y position, label string)
     std::vector<std::pair<int, std::string>> scrollbar_labels;

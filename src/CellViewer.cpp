@@ -1,5 +1,6 @@
 #include <CellViewer.h>
 
+#include <chrono>
 #include <iostream>
 #include <functional>
 #include <vector>
@@ -246,12 +247,25 @@ void CellViewer::draw_scrollbar_labels()
 void CellViewer::resize(int x_, int y_, int w_, int h_)
 {
     Fl_Widget::resize(x_, y_, w_, h_);
+    resize();
+}
+
+
+void CellViewer::resize()
+{
+    auto now = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - resize_start);
+    if (duration.count() > 17 * 17 * 17)
+    {
+        resize_start = now;
+        saved_chapter_offset = chapter_offset + 1;
+        std::cout << "CellViewer::resize() --> saved_chapter_offset: " << saved_chapter_offset << std::endl;
+    }
 
     reposition();
     offsets_dirty = true;
-    // redraw();
-    if (scroll_offset() > max_scroll_offset)
-        scroll_offset() = max_scroll_offset;
+    scroll_offset() = 0;
+    restore_saved_chapter_offset = true;
     redraw();
 }
 
@@ -305,9 +319,6 @@ int CellViewer::handle(int event)
                 // }
 
 
-                // std::cout << "y(): " << y() << std::endl;
-                // std::cout << "h(): " << h() << std::endl;
-                // std::cout << "max_scroll_offset: " << max_scroll_offset << std::endl;
                 if (ex >= scroll_event_x_min && ex <= scroll_event_x_max && max_scroll_offset > 0)
                 {
                     dragging_scroller = true;
@@ -316,44 +327,6 @@ int CellViewer::handle(int event)
                     return 1;
                 }
 
-                // int const ty = (ey - y()) / Settings::nil.as_line_height();
-                // int term{-1};
-                // for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
-                // {
-                //     Cell & t = cells[ty][tx];
-                //     term = t.term;
-                //
-                //     if (ex > t.start && ex < t.end)
-                //     {
-                //         // activate parent term instead when over space between terms
-                //         if (t.term == index_of_space && t.ancestor_count > 0)
-                //         {
-                //             // // but only offer phrases that appear at least twice,
-                //             // // so get the location_count
-                //             // int const * book_components = nullptr;
-                //             // int const * chapter_components = nullptr;
-                //             // int const * paragraph_components = nullptr;
-                //             // int const * word_components = nullptr;
-                //             // int location_count = 0;
-                //             // matchmaker::locations(t.ancestors[0],
-                //             //                       &book_components,
-                //             //                       &chapter_components,
-                //             //                       &paragraph_components,
-                //             //                       &word_components,
-                //             //                       &location_count);
-                //             // if (location_count > 1)
-                //             //     term = t.ancestors[0];
-                //             // else
-                //             //     return 1;
-                //             term = t.ancestors[0];
-                //         }
-                //
-                //         Data::term_clicked(term, type());
-                //
-                //         // redraw();
-                //         return 1;
-                //     }
-                // }
                 return 1;
             }
 
@@ -835,7 +808,7 @@ void CellViewer::leave()
 
 
 
-void CellViewer::scroll_to_offset(int offset)
+void CellViewer::scroll_to_chapter_index(int offset)
 {
     if (scroll_offsets_by_chapter.empty())
     {
@@ -901,14 +874,12 @@ void CellViewer::draw_content()
         {
             scroll_offsets_by_chapter.push_back(yp - initial_yp);
 
-            // std::string label = std::to_string(ch_i + 1);
-
             // initially store current yp
             // once final yp is known (end of function),
             // the y positions can be calculated from the current yp
             scrollbar_labels.push_back({yp, ch[ch_ii].second});
         }
-        else if (start_ch_ii == -1) // skip ahead to just before visible (makes drawing much faster)
+        else if (start_ch_ii == -1) // skip ahead to just before visible
         {
             int i = (int) scroll_offsets_by_chapter.size();
             for (; i-- > 0;)
@@ -920,6 +891,7 @@ void CellViewer::draw_content()
                 start_ch_ii = 0;
 
             ch_ii = start_ch_ii;
+            chapter_offset = start_ch_ii;
             yp = scroll_offsets_by_chapter[ch_ii];
             yp += line_height;
             ch_i = ch[ch_ii].first;
@@ -1187,13 +1159,12 @@ void CellViewer::draw_content()
 
     if (offsets_dirty)
     {
+        offsets_dirty = false;
+
         max_scroll_offset = ((int) (yp - h()) / line_height) * line_height;
 
         if (max_scroll_offset < 0)
             max_scroll_offset = 0;
-        // std::cout << "Viewer::draw_content() -> chapter offsets up to date!   -->   max_scroll_offset: "
-        //           << max_scroll_offset << std::endl;
-        offsets_dirty = false;
 
         if (max_scroll_offset > 0)
         {
@@ -1202,6 +1173,19 @@ void CellViewer::draw_content()
             for (size_t i = 0; i < scrollbar_labels.size(); ++i)
                 scrollbar_labels[i].first =
                         (int) ((scrollbar_labels[i].first / (float) (yp)) * (h() - line_height - fl_size() / 2));
+        }
+
+        restore_saved_chapter_offset = false;
+
+        if (scroll_offsets_by_chapter.size() > 0)
+        {
+            if (saved_chapter_offset >= (int) scroll_offsets_by_chapter.size())
+                saved_chapter_offset = (int) scroll_offsets_by_chapter.size() - 1;
+
+            if (saved_chapter_offset < 0)
+                saved_chapter_offset = 0;
+
+            scroll_offset() = scroll_offsets_by_chapter[saved_chapter_offset];
         }
 
         draw_content();

@@ -478,7 +478,7 @@ void bang_post(int post)
 {
     BookViewer * bv = Data::nil.as_book_viewer();
     if (nullptr != bv)
-        bv->scroll_to_offset(post - 1);
+        bv->scroll_to_chapter_index(post - 1);
 }
 
 
@@ -507,7 +507,7 @@ void bang(int bang_input, int range_low, int range_high, std::function<T (int)> 
         if (t.as_string() == bv->chapters()[offset].second)
             break;
 
-    bv->scroll_to_offset(offset);
+    bv->scroll_to_chapter_index(offset);
 }
 
 

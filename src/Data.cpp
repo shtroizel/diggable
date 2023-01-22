@@ -274,16 +274,10 @@ namespace Data
             Data::nil.as_term_viewer()->redraw();
 
         if (nullptr != Data::nil.as_book_viewer())
-        {
-            Data::nil.as_book_viewer()->mark_dirty();
-            Data::nil.as_book_viewer()->redraw();
-        }
+            Data::nil.as_book_viewer()->resize();
 
         if (nullptr != Data::nil.as_location_viewer())
-        {
-            Data::nil.as_location_viewer()->mark_dirty();
-            Data::nil.as_location_viewer()->redraw();
-        }
+            Data::nil.as_location_viewer()->resize();
     }
 
 
