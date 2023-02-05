@@ -33,7 +33,7 @@ class MainWindow;
 
 
 
-PROPERTYx12_MATCHABLE(
+PROPERTYx13_MATCHABLE(
     BookViewer *, book_viewer,
     TermViewer *, term_viewer,
     LocationViewer *, location_viewer,
@@ -46,12 +46,14 @@ PROPERTYx12_MATCHABLE(
     int8_t, image_shown,
     int8_t, image_maximized,
     int8_t, fullscreen,
+    int8_t, max_button_font_size,
 
     Data
 )
 
-MATCHABLE_NIL_PROPERTY_VALUE(Data, image_maximized, false);
-MATCHABLE_NIL_PROPERTY_VALUE(Data, fullscreen, false);
+MATCHABLE_NIL_PROPERTY_VALUE(Data, image_maximized, false)
+MATCHABLE_NIL_PROPERTY_VALUE(Data, fullscreen, false)
+MATCHABLE_NIL_PROPERTY_VALUE(Data, max_button_font_size, 19)
 
 MATCHABLE_FWD(Viewer)
 

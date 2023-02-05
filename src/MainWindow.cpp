@@ -40,7 +40,7 @@ MainWindow::MainWindow(int w, int h, char const * t) : Fl_Double_Window(w, h, t)
     Data::nil.set_location_viewer(location_viewer);
     Data::nil.set_main_window(this);
 
-    size_range(750, 216, 0, 0, 0, 0);
+    size_range(792, 432, 0, 0, 0, 0);
 }
 
 
@@ -141,35 +141,28 @@ void MainWindow::resize(int x, int y, int w, int h)
 
     // std::cout << "resize() --> (" << x << ", " << y << ", " << w << ", " << h << ")" << std::endl;
 
-    int max_font_size = 0;
-
     if (w < 850)
     {
-        max_font_size = 9;
+        Data::nil.set_max_button_font_size(10);
     }
     else if (w < 950)
     {
-        max_font_size = 10;
+        Data::nil.set_max_button_font_size(11);
     }
     else if (w < 1050)
     {
-        max_font_size = 12;
+        Data::nil.set_max_button_font_size(13);
     }
     else if (w < 1160)
     {
-        max_font_size = 14;
+        Data::nil.set_max_button_font_size(15);
     }
     else if (w < 1260)
     {
-        max_font_size = 15;
+        Data::nil.set_max_button_font_size(16);
     }
     else
     {
-        max_font_size = 21;
+        Data::nil.set_max_button_font_size(22);
     }
-
-    if (Settings::nil.as_font_size() > max_font_size)
-        Settings::nil.set_font_size(max_font_size);
-
-    Settings::nil.set_max_font_size(max_font_size);
 }

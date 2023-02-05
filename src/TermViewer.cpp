@@ -1542,7 +1542,10 @@ void TermViewer::draw_button_bar()
         // FL_YELLOW
     );
 
-    fl_font(MONO_FONT, Settings::nil.as_font_size() + 1);
+    int8_t button_font_size = Settings::nil.as_font_size() + 1;
+    if (button_font_size > Data::nil.as_max_button_font_size())
+        button_font_size = Data::nil.as_max_button_font_size();
+    fl_font(MONO_FONT, button_font_size);
 
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
