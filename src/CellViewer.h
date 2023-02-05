@@ -42,6 +42,18 @@ public:
 
 protected:
     void set_chapters(std::vector<int> const & chapters);
+    bool draw_header_for_left_scrollbar_orientation(
+        int ch_i,
+        int & xp,
+        int & yp,
+        int & xi
+    );
+    bool draw_header_for_right_scrollbar_orientation(
+        int ch_i,
+        int & xp,
+        int & yp,
+        int & xi
+    );
     void draw_cell(
         int term,
         int book,

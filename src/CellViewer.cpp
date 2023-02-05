@@ -898,101 +898,11 @@ void CellViewer::draw_content()
             ch_i = ch[ch_ii].first;
         }
 
-        int const * terms{nullptr};
-        int term_count{0};
-        matchmaker::chapter_title(0, ch_i, &terms, &term_count);
-        ScrollbarLocation::Type sl = scrollbar_location;
-
+        // draw header
         if (scrollbar_location == ScrollbarLocation::Left::grab())
         {
-            // title
-            fl_font(MONO_FONT, Settings::nil.as_chapter_font_size());
-            xp = content_x + 17;
-            for (int i = 0; i < term_count; ++i)
-            {
-                draw_cell(
-                    terms[i],
-                    0,
-                    ch_i,
-                    -1,
-                    nullptr,
-                    0,
-                    -1,
-                    true,
-                    false,
-                    false,
-                    type().as_chapter_title_color(),
-                    xp,
-                    yp,
-                    xi
-                );
-
-                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-                    return;
-            }
-            fl_font(MONO_FONT, Settings::nil.as_font_size());
-
-            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+            if (!draw_header_for_left_scrollbar_orientation(ch_i, xp, yp, xi))
                 return;
-
-            // to draw subtitle, first find widths of each line
-            int subtitle_width_1 = 0;
-            int subtitle_width_2 = 0;
-            {
-                int term_len = 0;
-                matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
-                int i = 0;
-                for (; terms[i] != index_of_comma && i < term_count; ++i)
-                {
-                    matchmaker::at(terms[i], &term_len);
-                    subtitle_width_1 += term_len;
-                }
-                ++i;
-                for (; i < term_count; ++i)
-                {
-                    matchmaker::at(terms[i], &term_len);
-                    subtitle_width_2 += term_len;
-                }
-            }
-            subtitle_width_1 = (int) (subtitle_width_1 * fl_width('Q'));
-            subtitle_width_2 = (int) (subtitle_width_2 * fl_width('q'));
-
-            // yp += line_height;
-            // xi = 0;
-            // xp = content_x;
-            xp = content_x + (content_width - subtitle_width_1);
-
-            matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
-            for (int i = 0; i < term_count; ++i)
-            {
-                if (terms[i] == index_of_comma)
-                {
-                    yp += line_height;
-                    xp = content_x + (content_width - subtitle_width_2);
-                    xi = 0;
-                    continue;
-                }
-
-                draw_cell(
-                    terms[i],
-                    0,
-                    ch_i,
-                    -1,
-                    nullptr,
-                    0,
-                    -1,
-                    false,
-                    true,
-                    false,
-                    type().as_chapter_subtitle_color(),
-                    xp,
-                    yp,
-                    xi
-                );
-
-                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-                    return;
-            }
         }
         else
         {
@@ -1002,88 +912,7 @@ void CellViewer::draw_content()
                           << "\n  unkown scrollbar location: " << scrollbar_location << std::endl;
             }
 
-            // first draw subtitle
-            fl_font(MONO_FONT, Settings::nil.as_font_size());
-            int const yp_before_subtitle = yp;
-            xp = content_x;
-            xi = 0;
-            int xi_subtitle_line_1 = 0;
-            matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
-            for (int i = 0; i < term_count; ++i)
-            {
-                if (terms[i] == index_of_comma)
-                {
-                    yp += line_height;
-                    xp = content_x;
-                    xi_subtitle_line_1 = xi;
-                    xi = 0;
-                    continue;
-                }
-
-                draw_cell(
-                    terms[i],
-                    0,
-                    ch_i,
-                    -1,
-                    nullptr,
-                    0,
-                    -1,
-                    false,
-                    true,
-                    false,
-                    type().as_chapter_subtitle_color(),
-                    xp,
-                    yp,
-                    xi
-                );
-
-                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-                    return;
-            }
-
-            // then find width before drawing title
-            fl_font(MONO_FONT, Settings::nil.as_chapter_font_size());
-            int title_width = 0;
-            {
-                int term_len = 0;
-                matchmaker::chapter_title(0, ch_i, &terms, &term_count);
-                for (int i = 0; i < term_count; ++i)
-                {
-                    matchmaker::at(terms[i], &term_len);
-                    title_width += term_len;
-                }
-            }
-            title_width = (int) (title_width * fl_width('Q'));
-
-            yp = yp_before_subtitle;
-            xp = content_x + content_width - 17 - title_width;
-            xi = xi_subtitle_line_1;
-            for (int i = 0; i < term_count; ++i)
-            {
-                draw_cell(
-                    terms[i],
-                    0,
-                    ch_i,
-                    -1,
-                    nullptr,
-                    0,
-                    -1,
-                    true,
-                    false,
-                    false,
-                    type().as_chapter_title_color(),
-                    xp,
-                    yp,
-                    xi
-                );
-
-                if (!offsets_dirty && yp + line_height - scroll_offset() > h())
-                    return;
-            }
-
-            yp += line_height;
-
-            if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+            if (!draw_header_for_right_scrollbar_orientation(ch_i, xp, yp, xi))
                 return;
         }
 
@@ -1191,6 +1020,279 @@ void CellViewer::draw_content()
 
         draw_content();
     }
+}
+
+
+
+bool CellViewer::draw_header_for_left_scrollbar_orientation(
+    int ch_i,
+    int & xp,
+    int & yp,
+    int & xi
+)
+{
+    int const line_height = Settings::nil.as_line_height();
+
+    // title
+    int const * terms{nullptr};
+    int term_count{0};
+    matchmaker::chapter_title(0, ch_i, &terms, &term_count);
+    fl_font(MONO_FONT, Settings::nil.as_chapter_font_size());
+    xp = content_x + 17;
+    for (int i = 0; i < term_count; ++i)
+    {
+        draw_cell(
+            terms[i],
+            0,
+            ch_i,
+            -1,
+            nullptr,
+            0,
+            -1,
+            true,
+            false,
+            false,
+            type().as_chapter_title_color(),
+            xp,
+            yp,
+            xi
+        );
+
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+            return false;
+    }
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
+
+    if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+        return false;
+
+    // find subtitle widths
+    int subtitle_width_1 = 0;
+    int subtitle_width_2 = 0;
+    int subtitle_width_3 = 0;
+    int subtitle_width_4 = 0;
+    {
+        int term_len = 0;
+        matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+        int i = 0;
+        for (; terms[i] != index_of_space && i < term_count; ++i)
+        {
+            matchmaker::at(terms[i], &term_len);
+            subtitle_width_1 += term_len;
+        }
+        ++i;
+        for (; terms[i] != index_of_comma && i < term_count; ++i)
+        {
+            matchmaker::at(terms[i], &term_len);
+            subtitle_width_2 += term_len;
+        }
+        ++i;
+        for (; terms[i] != index_of_space && i < term_count; ++i)
+        {
+            matchmaker::at(terms[i], &term_len);
+            subtitle_width_3 += term_len;
+        }
+        ++i;
+        for (; i < term_count; ++i)
+        {
+            matchmaker::at(terms[i], &term_len);
+            subtitle_width_4 += term_len;
+        }
+    }
+    subtitle_width_1 = (int) (subtitle_width_1 * fl_width('Q'));
+    subtitle_width_2 = (int) (subtitle_width_2 * fl_width('Q'));
+    subtitle_width_3 = (int) (subtitle_width_3 * fl_width('Q'));
+    subtitle_width_4 = (int) (subtitle_width_4 * fl_width('Q'));
+
+    xp = content_x + (content_width - subtitle_width_1);
+
+    matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+    bool first_space_encountered = false;
+    bool second_space_encountered = false;
+    bool third_space_encountered = false;
+    for (int i = 0; i < term_count; ++i)
+    {
+        if (terms[i] == index_of_space)
+        {
+            if (!first_space_encountered)
+            {
+                first_space_encountered = true;
+                yp += line_height;
+                xp = content_x + (content_width - subtitle_width_2);
+                xi = 0;
+                continue;
+            }
+            if (!second_space_encountered)
+            {
+                second_space_encountered = true;
+            }
+            else if (!third_space_encountered)
+            {
+                third_space_encountered = true;
+                yp += line_height;
+                xp = content_x + (content_width - subtitle_width_4);
+                xi = 0;
+                continue;
+            }
+        }
+        else if (terms[i] == index_of_comma)
+        {
+            yp += line_height;
+            xp = content_x + (content_width - subtitle_width_3);
+            xi = 0;
+            continue;
+        }
+
+        draw_cell(
+            terms[i],
+            0,
+            ch_i,
+            -1,
+            nullptr,
+            0,
+            -1,
+            false,
+            true,
+            false,
+            type().as_chapter_subtitle_color(),
+            xp,
+            yp,
+            xi
+        );
+
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+            return false;
+    }
+
+    return true;
+}
+
+
+
+bool CellViewer::draw_header_for_right_scrollbar_orientation(
+    int ch_i,
+    int & xp,
+    int & yp,
+    int & xi
+)
+{
+    int const line_height = Settings::nil.as_line_height();
+
+    // first draw subtitle
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
+    int const yp_before_subtitle = yp;
+    xp = content_x;
+    xi = 0;
+    int xi_subtitle_line_1 = 0;
+    int const * terms{nullptr};
+    int term_count{0};
+    matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+    bool first_space_encountered = false;
+    bool second_space_encountered = false;
+    bool third_space_encountered = false;
+    for (int i = 0; i < term_count; ++i)
+    {
+        if (terms[i] == index_of_space)
+        {
+            if (!first_space_encountered)
+            {
+                first_space_encountered = true;
+                yp += line_height;
+                xp = content_x;
+                xi = 0;
+                continue;
+            }
+            if (!second_space_encountered)
+            {
+                second_space_encountered = true;
+            }
+            else if (!third_space_encountered)
+            {
+                third_space_encountered = true;
+                yp += line_height;
+                xp = content_x;
+                xi = 0;
+                continue;
+            }
+        }
+        else if (terms[i] == index_of_comma)
+        {
+            yp += line_height;
+            xp = content_x;
+            xi_subtitle_line_1 = xi;
+            xi = 0;
+            continue;
+        }
+
+        draw_cell(
+            terms[i],
+            0,
+            ch_i,
+            -1,
+            nullptr,
+            0,
+            -1,
+            false,
+            true,
+            false,
+            type().as_chapter_subtitle_color(),
+            xp,
+            yp,
+            xi
+        );
+
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+            return false;
+    }
+
+    int yp_after_subtitle = yp;
+
+    // then find width before drawing title
+    fl_font(MONO_FONT, Settings::nil.as_chapter_font_size());
+    int title_width = 0;
+    {
+        int term_len = 0;
+        matchmaker::chapter_title(0, ch_i, &terms, &term_count);
+        for (int i = 0; i < term_count; ++i)
+        {
+            matchmaker::at(terms[i], &term_len);
+            title_width += term_len;
+        }
+    }
+    title_width = (int) (title_width * fl_width('Q'));
+
+    yp = yp_before_subtitle;
+    xp = content_x + content_width - 17 - title_width;
+    xi = xi_subtitle_line_1;
+    for (int i = 0; i < term_count; ++i)
+    {
+        draw_cell(
+            terms[i],
+            0,
+            ch_i,
+            -1,
+            nullptr,
+            0,
+            -1,
+            true,
+            false,
+            false,
+            type().as_chapter_title_color(),
+            xp,
+            yp,
+            xi
+        );
+
+        if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+            return false;
+    }
+
+    yp = yp_after_subtitle;
+
+    if (!offsets_dirty && yp + line_height - scroll_offset() > h())
+        return false;
+
+    return true;
 }
 
 
