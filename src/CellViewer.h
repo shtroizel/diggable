@@ -58,6 +58,22 @@ protected:
         int & yp,
         int & xi
     );
+    void draw_wrapped_term(
+        int term,
+        int book,
+        int chapter,
+        int paragraph,
+        int const * ancestors,
+        int ancestor_count,
+        int index_within_first_ancestor,
+        bool within_chapter_title,
+        bool within_chapter_subtitle,
+        bool within_linked_text,
+        Fl_Color draw_color,
+        int & xp,
+        int & yp,
+        int & xi
+    );
 
     static int const MAX_LINES{216};  // maxium visible lines
     static int const MAX_CELLS_PER_LINE{210};  // maxium visible terms per line

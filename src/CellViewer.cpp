@@ -1213,207 +1213,91 @@ void CellViewer::draw_cell(
     // , bool & term_visible
 )
 {
-    // so sorry to anyone reading the code in this function
-
-    int const xp_start = within_linked_text ? content_x + 17 : content_x;
-    if (xp == content_x && within_linked_text)
-        xp = xp_start;
-
-    int s_len{0};
-    char const * s = matchmaker::at(term, &s_len);
-    int s_width = fl_width(" ") * s_len;
     int const line_height = Settings::nil.as_line_height();
     if (line_height == 0)
         return;
 
-    int const available_width = (int) (content_width) / fl_width("Q");
-
-    if (xp + s_width > content_x + content_width)
+    // get line start and width in pixels
+    int xp_start = content_x;
+    int max_line_width = content_width;
+    if (within_linked_text)
     {
-        if (s_width <= (content_width - xp) + content_width && xp != content_x)
+        xp_start += 17;
+        max_line_width -= 17;
+        if (xp == content_x)
+            xp = xp_start;
+    }
+
+    // get the term as a string
+    int s_len{0};
+    char const * s = matchmaker::at(term, &s_len);
+    int s_width = fl_width("Q") * s_len;
+
+    // if not enough width available
+    if (xp + s_width > xp_start + max_line_width)
+    {
+        // if not at the beginning of the line then move to beginning and try again
+        if (xp > xp_start)
         {
             xp = xp_start;
             yp += line_height;
             xi = 0;
+            return draw_cell(
+                       term,
+                       book,
+                       chapter,
+                       paragraph,
+                       ancestors,
+                       ancestor_count,
+                       index_within_first_ancestor,
+                       within_chapter_title,
+                       within_chapter_subtitle,
+                       within_linked_text,
+                       draw_color,
+                       xp,
+                       yp,
+                       xi
+                   );
         }
-        else
+
+        // should be impossible but check to be sure
+        if (xp != xp_start)
         {
-            if (s_width > (content_width - xp) + content_width && xp != content_x)
-            {
-                xp = xp_start;
-                yp += line_height;
-                xi = 0;
-            }
-
-            int const indent_char_count = 3;
-            int const indent_x = fl_width("q") * indent_char_count;
-            int const line_height = Settings::nil.as_line_height();
-            int total_chars_written{0};
-            int cur_chars_to_write{0};
-            int cur_chars_to_write_saved{0};
-            int top{0};
-            int end{0};
-            int initial_yi = 0;
-            int wrapped_line_count = 0;
-            while (total_chars_written < s_len)
-            {
-                ++wrapped_line_count;
-                xp = xp_start;
-                xi = 0;
-
-                cur_chars_to_write = s_len - total_chars_written;
-                int yi = (yp - line_height - scroll_offset()) / line_height;
-                if (yi < 0)
-                    yi = 0;
-
-                if (total_chars_written == 0)
-                {
-                    initial_yi = yi;
-
-                    if (cur_chars_to_write > available_width)
-                    {
-                        cur_chars_to_write = available_width;
-                        cur_chars_to_write_saved = cur_chars_to_write;
-                        while (s[cur_chars_to_write] != ' ' && cur_chars_to_write > 1)
-                            --cur_chars_to_write;
-
-                        // if no space then fall back to hard cut,
-                        // otherwise allow the new line to count as a space
-                        if (cur_chars_to_write == 1)
-                            cur_chars_to_write = cur_chars_to_write_saved;
-                        else
-                            ++cur_chars_to_write;
-                    }
-
-                    if (!offsets_dirty)
-                    {
-                        fl_color(draw_color);
-                        fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset() + fl_size());
-                    }
-
-                    if (yi < MAX_LINES)
-                    {
-                        cells[yi][xi].term = term;
-                        cells[yi][xi].ancestors = ancestors;
-                        cells[yi][xi].ancestor_count = ancestor_count;
-                        cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
-                        cells[yi][xi].start = xp;
-                        top = yp - scroll_offset() - line_height;
-                        cells[yi][xi].top = top;
-                        cells[yi][xi].book = book;
-                        cells[yi][xi].chapter = chapter;
-                        cells[yi][xi].paragraph = paragraph;
-                        cells[yi][xi].within_chapter_title = within_chapter_title;
-                        cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
-                        cells[yi][xi].within_linked_text = within_linked_text;
-
-                        // term_visible = true;
-                    }
-                    else
-                    {
-                        // term_visible = false;
-                    }
-                    xp += cur_chars_to_write * fl_width("Q");
-                    if (yi < MAX_LINES)
-                    {
-                        end = xp;
-                        cells[yi][xi].end = xp;
-                    }
-                    ++xi;
-
-                }
-                else
-                {
-                    if (cur_chars_to_write > available_width - indent_char_count)
-                    {
-                        cur_chars_to_write = available_width - indent_char_count;
-                        int cur_chars_to_write_saved = cur_chars_to_write;
-                        while (s[cur_chars_to_write] != ' ' && cur_chars_to_write > 1)
-                            --cur_chars_to_write;
-
-                        // if no space then fall back to hard cut,
-                        // otherwise allow the new line to count as a space
-                        if (cur_chars_to_write == 1)
-                            cur_chars_to_write = cur_chars_to_write_saved;
-                        else
-                            ++cur_chars_to_write;
-                    }
-
-                    if (!offsets_dirty)
-                    {
-                        fl_color(draw_color);
-                        int typ = yp - line_height - scroll_offset() + fl_size();
-                        fl_draw(s, cur_chars_to_write, xp + indent_x, typ);
-
-                        int const x0 = xp + indent_x / 5;
-                        int const y0 = typ - line_height * 4 / 7;
-
-                        int const x1 = x0;
-                        int const y1 = typ - line_height * 2 / 7;
-
-                        int const x2 = xp + indent_x - indent_x * 2 / 5;
-                        int const y2 = y1;
-
-
-                        fl_color(Settings::nil.as_wrap_indicator_color());
-                        fl_line(x0, y0, x1, y1, x2, y2);
-                    }
-
-
-                    if (yi < MAX_LINES)
-                    {
-                        cells[yi][xi].term = term;
-                        cells[yi][xi].ancestors = ancestors;
-                        cells[yi][xi].ancestor_count = ancestor_count;
-                        cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
-                        cells[yi][xi].start = xp;
-                        cells[yi][xi].end = end;
-                        cells[yi][xi].top = top;
-                        cells[yi][xi].book = book;
-                        cells[yi][xi].chapter = chapter;
-                        cells[yi][xi].paragraph = paragraph;
-                        cells[yi][xi].within_chapter_title = within_chapter_title;
-                        cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
-                        cells[yi][xi].within_linked_text = within_linked_text;
-
-                        // term_visible = true;
-                    }
-                    else
-                    {
-                        // term_visible = false;
-                    }
-                    xp += cur_chars_to_write * fl_width("Q");
-                    ++xi;
-                }
-
-                s += cur_chars_to_write;
-                total_chars_written += cur_chars_to_write;
-                yp += line_height;
-            }
-
-            yp -= line_height;
-
-            for (int i = 0; i < wrapped_line_count; ++i)
-                if (initial_yi + i < MAX_LINES)
-                    cells[initial_yi + i][0].height = wrapped_line_count * line_height;
-
-            return;
+            std::cout << "CellViewer::draw_cell() --> xp somehow less than xp_start! correcting..." << std::endl;
+            xp = xp_start;
         }
+        if (xi != 0)
+        {
+            std::cout << "CellViewer::draw_cell() --> xi expected to be 0! correcting..." << std::endl;
+            xi = 0;
+        }
+
+        // term is too long to handle wrapping between terms
+        // for this case the term its self needs to be drawn across multiple lines...
+        return draw_wrapped_term(
+                   term,
+                   book,
+                   chapter,
+                   paragraph,
+                   ancestors,
+                   ancestor_count,
+                   index_within_first_ancestor,
+                   within_chapter_title,
+                   within_chapter_subtitle,
+                   within_linked_text,
+                   draw_color,
+                   xp,
+                   yp,
+                   xi
+               );
     }
 
     if (yp >= scroll_offset())
     {
         if (!offsets_dirty)
         {
-            int draw_len = s_len;
-            if (draw_len > available_width)
-            {
-//                std::cout << "CellViewer::append_term() --> wrapping failed!" << std::endl;
-                draw_len = available_width;
-            }
-
             fl_color(draw_color);
-            fl_draw(s, draw_len, xp, yp - line_height - scroll_offset() + fl_size());
+            fl_draw(s, s_len, xp, yp - line_height - scroll_offset() + fl_size());
         }
         int yi = (yp - line_height - scroll_offset()) / line_height;
         if (yi < 0)
@@ -1451,6 +1335,203 @@ void CellViewer::draw_cell(
         xp += s_width;
         // term_visible = false;
     }
+}
+
+
+
+void CellViewer::draw_wrapped_term(
+    int term,
+    int book,
+    int chapter,
+    int paragraph,
+    int const * ancestors,
+    int ancestor_count,
+    int index_within_first_ancestor,
+    bool within_chapter_title,
+    bool within_chapter_subtitle,
+    bool within_linked_text,
+    Fl_Color draw_color,
+    int & xp,
+    int & yp,
+    int & xi
+    // , bool & term_visible
+)
+{
+    int const line_height = Settings::nil.as_line_height();
+    if (line_height == 0)
+        return;
+
+    // get line start and width in pixels
+    int xp_start = content_x;
+    int max_line_width = content_width;
+    if (within_linked_text)
+    {
+        xp_start += 17;
+        max_line_width -= 17;
+        if (xp == content_x)
+            xp = xp_start;
+    }
+
+    // get the term as a string
+    int s_len{0};
+    char const * s = matchmaker::at(term, &s_len);
+
+    int const indent_char_count = 3;
+    int const indent_x = fl_width("q") * indent_char_count;
+    int const max_line_width_in_chars = (int) (max_line_width / fl_width("Q"));
+    int total_chars_written{0};
+    int cur_chars_to_write{0};
+    int cur_chars_to_write_saved{0};
+    int top{0};
+    int initial_yi = 0;
+    int wrapped_line_count = 0;
+
+    auto split =
+        [
+            &s,
+            &max_line_width_in_chars,
+            &cur_chars_to_write,
+            &cur_chars_to_write_saved
+        ]
+        (bool indent)
+        {
+            cur_chars_to_write = max_line_width_in_chars - 1;
+            if (indent)
+                cur_chars_to_write -= indent_char_count;
+            cur_chars_to_write_saved = cur_chars_to_write;
+            while (
+                cur_chars_to_write > 1
+                && s[cur_chars_to_write] != ' '
+                && s[cur_chars_to_write] != '/'
+                && s[cur_chars_to_write] != '-'
+                && s[cur_chars_to_write] != '='
+            )
+                --cur_chars_to_write;
+
+            // if no break char found then fall back to hard cut,
+            if (cur_chars_to_write == 1)
+                cur_chars_to_write = cur_chars_to_write_saved;
+            // otherwise keep wrapped char before line break
+            else
+                ++cur_chars_to_write;
+        };
+
+    while (total_chars_written < s_len)
+    {
+        ++wrapped_line_count;
+        xp = xp_start;
+        xi = 0;
+
+        cur_chars_to_write = s_len - total_chars_written;
+        int yi = (yp - line_height - scroll_offset()) / line_height;
+        if (yi < 0)
+            yi = 0;
+
+        // if the first (unwrapped) line
+        if (total_chars_written == 0)
+        {
+            initial_yi = yi;
+
+            if (cur_chars_to_write > max_line_width_in_chars)
+                split(false);
+
+            if (!offsets_dirty)
+            {
+                fl_color(draw_color);
+                fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset() + fl_size());
+            }
+
+            if (yi < MAX_LINES)
+            {
+                cells[yi][xi].term = term;
+                cells[yi][xi].ancestors = ancestors;
+                cells[yi][xi].ancestor_count = ancestor_count;
+                cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+                cells[yi][xi].start = xp;
+                cells[yi][xi].end = xp_start + max_line_width + fl_width("Q");
+                top = yp - scroll_offset() - line_height;
+                cells[yi][xi].top = top;
+                cells[yi][xi].book = book;
+                cells[yi][xi].chapter = chapter;
+                cells[yi][xi].paragraph = paragraph;
+                cells[yi][xi].within_chapter_title = within_chapter_title;
+                cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
+                cells[yi][xi].within_linked_text = within_linked_text;
+
+                // term_visible = true;
+            }
+            else
+            {
+                // term_visible = false;
+            }
+            xp += cur_chars_to_write * fl_width("Q");
+            ++xi;
+
+        }
+
+        // if not the first line (indented & wrapped)
+        else
+        {
+            if (cur_chars_to_write > max_line_width_in_chars - indent_char_count)
+                split(true);
+
+            if (!offsets_dirty)
+            {
+                fl_color(draw_color);
+                int typ = yp - line_height - scroll_offset() + fl_size();
+                fl_draw(s, cur_chars_to_write, xp + indent_x, typ);
+
+                int const x0 = xp + indent_x / 5;
+                int const y0 = typ - line_height * 4 / 7;
+
+                int const x1 = x0;
+                int const y1 = typ - line_height * 2 / 7;
+
+                int const x2 = xp + indent_x - indent_x * 2 / 5;
+                int const y2 = y1;
+
+
+                fl_color(Settings::nil.as_wrap_indicator_color());
+                fl_line(x0, y0, x1, y1, x2, y2);
+            }
+
+
+            if (yi < MAX_LINES)
+            {
+                cells[yi][xi].term = term;
+                cells[yi][xi].ancestors = ancestors;
+                cells[yi][xi].ancestor_count = ancestor_count;
+                cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
+                cells[yi][xi].start = xp;
+                cells[yi][xi].end = xp_start + max_line_width + fl_width("Q");
+                cells[yi][xi].top = top;
+                cells[yi][xi].book = book;
+                cells[yi][xi].chapter = chapter;
+                cells[yi][xi].paragraph = paragraph;
+                cells[yi][xi].within_chapter_title = within_chapter_title;
+                cells[yi][xi].within_chapter_subtitle = within_chapter_subtitle;
+                cells[yi][xi].within_linked_text = within_linked_text;
+
+                // term_visible = true;
+            }
+            else
+            {
+                // term_visible = false;
+            }
+            xp += cur_chars_to_write * fl_width("Q");
+            ++xi;
+        }
+
+        s += cur_chars_to_write;
+        total_chars_written += cur_chars_to_write;
+        yp += line_height;
+    }
+
+    yp -= line_height;
+
+    for (int i = 0; i < wrapped_line_count; ++i)
+        if (initial_yi + i < MAX_LINES)
+            cells[initial_yi + i][0].height = wrapped_line_count * line_height;
 }
 
 
