@@ -96,7 +96,7 @@ protected:
 
 
 private:
-    virtual int & scroll_offset() = 0;
+    virtual int64_t & scroll_offset() = 0;
 
     void draw_scrollbar();
     void draw_scrollbar_labels();
@@ -109,7 +109,7 @@ private:
     int lines_to_scroll_at_a_time{4};
     int scrollbar_label_width{45};
     int scrollbar_width{17};
-    int scroller_top{0};
+    int scroller_mid{0};
     int scroller_height{scrollbar_width * 3};
     int const content_margin{7};
     int content_x{0};

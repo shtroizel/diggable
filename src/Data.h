@@ -16,11 +16,11 @@ by index required!
 
 struct TermStackElement
 {
-    int selected_term;      // currently selected term
+    int selected_term;         // currently selected term
     // std::string cs_prefix;  // completion stack's prefix
-    int bv_scroll_offset;   // BookViewer's scroll location
-    int display_start;      // TermViewer's scroll location
-    int lv_scroll_offset;   // LocationViewer's scroll location
+    int64_t bv_scroll_offset;  // BookViewer's scroll location
+    int display_start;         // TermViewer's scroll location
+    int64_t lv_scroll_offset;  // LocationViewer's scroll location
 };
 
 

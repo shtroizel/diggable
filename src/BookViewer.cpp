@@ -452,7 +452,7 @@ std::vector<std::pair<int, std::string>> const & BookViewer::chapters()
 
 
 
-int & BookViewer::scroll_offset()
+int64_t & BookViewer::scroll_offset()
 {
     // TermStack & ts = Data::nil.as_mutable_term_stack();
     // static int zero = 0;

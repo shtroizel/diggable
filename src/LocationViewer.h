@@ -22,7 +22,7 @@ public:
 
 private:
     std::vector<std::pair<int, std::string>> const & chapters() override;
-    int & scroll_offset() override;
+    int64_t & scroll_offset() override;
 
 private:
     std::vector<std::pair<int, std::string>> locations;

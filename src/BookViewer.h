@@ -65,7 +65,7 @@ public:
 
 
 private:
-    int & scroll_offset() override;
+    int64_t & scroll_offset() override;
 
     SortingOrder::Type so{SortingOrder::from_index(0)};
 };

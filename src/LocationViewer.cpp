@@ -91,7 +91,7 @@ std::vector<std::pair<int, std::string>> const & LocationViewer::chapters()
 
 
 
-int & LocationViewer::scroll_offset()
+int64_t & LocationViewer::scroll_offset()
 {
     // TermStack & ts = Data::nil.as_mutable_term_stack();
     // static int zero = 0;

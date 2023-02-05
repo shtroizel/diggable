@@ -116,16 +116,14 @@ void CellViewer::draw_scrollbar()
         type().as_foreground_color()
     );
 
-    // be extra carefull to avoid division by 0
-    if (max_scroll_offset <= 0)
-        scroller_top = 0;
-    else
-        scroller_top = y() + scroll_offset() * (h() - scroller_height) / max_scroll_offset;
+    scroller_mid = 0;
+    if (max_scroll_offset > 0)
+        scroller_mid = y() + scroll_offset() * h() / max_scroll_offset;
 
     // draw scroller (within scrollbar)
     fl_draw_box(FL_FLAT_BOX,
                 scrollbar_x,
-                scroller_top,
+                scroller_mid - scroller_height / 2,
                 scrollbar_width,
                 scroller_height,
                 fl_darker(Settings::nil.as_background_color()));
@@ -770,31 +768,22 @@ int CellViewer::handle(int event)
 }
 
 
-void CellViewer::scroll_to_y(int ey)
-{
-    // std::cout << "Viewer::scroll_to_y(" << ey << ")" << std::endl;
 
-    if (ey < scroller_height)
-    {
-        ey -= scroller_height * 0.5;
-        if (ey < 0)
-            ey = 0;
-    }
-    else if (ey > h() - scroller_height)
-    {
-        ey += scroller_height * 0.5;
-        if (ey > h())
-            ey = h();
-    }
-    float dmax = h();
-    float loc = ey / dmax;
+void CellViewer::scroll_to_y(int y_in_pix)
+{
     int const line_height = Settings::nil.as_line_height();
     if (line_height == 0)
         return;
 
+    float y_max = h();
+    float loc = y_in_pix / y_max;
+
     scroll_offset() = (((int) (loc * max_scroll_offset)) / line_height) * line_height;
     if (scroll_offset() > max_scroll_offset)
         scroll_offset() = max_scroll_offset;
+
+    if (scroll_offset() < 0)
+        scroll_offset() = 0;
 
     redraw();
 }
