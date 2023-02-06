@@ -33,7 +33,7 @@ namespace Data
             return false;
 
         matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>> & term_colors =
-                Settings::nil.as_mutable_term_colors();
+                ColorSettings::nil.as_mutable_term_colors();
 
         // deselect old term
         int old_term = ts.back().selected_term;
@@ -68,7 +68,7 @@ namespace Data
         if (t != -1)
         {
             for (Viewer::Type v : Viewer::variants())
-                term_colors.mut_at(v)[t] = Settings::nil.as_highlight_color();
+                term_colors.mut_at(v)[t] = ColorSettings::nil.as_highlight_color();
 
             s = matchmaker::at(t, nullptr);
         }
@@ -125,7 +125,7 @@ namespace Data
         }
 
         matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>> & term_colors =
-                Settings::nil.as_mutable_term_colors();
+                ColorSettings::nil.as_mutable_term_colors();
 
         int selected = ts.back().selected_term;
         if (selected != -1)
@@ -142,7 +142,7 @@ namespace Data
         if (selected != -1)
         {
             for (Viewer::Type v : Viewer::variants())
-                term_colors.mut_at(v)[selected] = Settings::nil.as_highlight_color();
+                term_colors.mut_at(v)[selected] = ColorSettings::nil.as_highlight_color();
         }
 
         if (caller != Viewer::TermViewer::grab())
@@ -198,7 +198,7 @@ namespace Data
     void term_clicked(int term, Viewer::Type caller)
     {
         // std::cout << "clicked on term: " << term << std::endl;
-        auto & term_colors = Settings::nil.as_mutable_term_colors();
+        auto & term_colors = ColorSettings::nil.as_mutable_term_colors();
 
         TermStack const & ts = Data::nil.as_term_stack();
         if (ts.empty())

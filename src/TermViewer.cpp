@@ -78,7 +78,7 @@ void TermViewer::draw()
                     hover_box[1],
                     hover_box[2] + HOVER_BOX_MARGIN_SIZE * 2,
                     hover_box[3],
-                    Settings::nil.as_hover_color());
+                    ColorSettings::nil.as_hover_color());
     }
 }
 
@@ -657,11 +657,11 @@ int TermViewer::handle(int event)
                             return 1;
 
                         matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>> & term_colors =
-                                Settings::nil.as_mutable_term_colors();
+                                ColorSettings::nil.as_mutable_term_colors();
 
                         auto & tc = term_colors.mut_at(type());
 
-                        if (tc[c[ci] + cs.top().display_start] != Settings::nil.as_highlight_color())
+                        if (tc[c[ci] + cs.top().display_start] != ColorSettings::nil.as_highlight_color())
                             Data::term_clicked(c[ci] + cs.top().display_start, Viewer::TermViewer::grab());
 
                         redraw();
@@ -1002,7 +1002,7 @@ void TermViewer::draw_search_bar()
     CompletionStack & cs = Data::nil.as_mutable_completion_stack();
 
     // clear
-    fl_rectf(x(), y(), w(), search_bar_height, Settings::nil.as_background_color());
+    fl_rectf(x(), y(), w(), search_bar_height, ColorSettings::nil.as_background_color());
 
     // input area
     fl_rectf(
@@ -1010,7 +1010,7 @@ void TermViewer::draw_search_bar()
         y() + margins,
         w() - margins * 3 - 17 * 2,
         search_bar_height - margins * 2,
-        Settings::nil.as_input_background_color()
+        ColorSettings::nil.as_input_background_color()
     );
 
     int search_bar_font_size = Settings::nil.as_font_size();
@@ -1116,7 +1116,7 @@ void TermViewer::draw_completion()
         y() + search_bar_height,
         w(),
         h() - search_bar_height - tsh - button_bar_height * 2 - info_area_height,
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
     );
 
     fl_font(MONO_FONT, Settings::nil.as_font_size());
@@ -1145,7 +1145,7 @@ void TermViewer::draw_completion()
         {
             int word_len{0};
             char const * word = matchmaker::at(sc[cs.top().display_start + i], &word_len);
-            fl_color(Settings::nil.as_term_colors().at(Viewer::TermViewer::grab())[
+            fl_color(ColorSettings::nil.as_term_colors().at(Viewer::TermViewer::grab())[
                     sc[cs.top().display_start + i]]);
 
             int total_chars_written{0};
@@ -1199,7 +1199,7 @@ void TermViewer::draw_completion()
                         fl_draw(word, cur_chars_to_write, xp + indent_x, yp);
 
                     Fl_Color prev_color = fl_color();
-                    fl_color(Settings::nil.as_wrap_indicator_color());
+                    fl_color(ColorSettings::nil.as_wrap_indicator_color());
 
                     int const x0 = xp + indent_x / 5;
                     int const y0 = yp - line_height * 4 / 7;
@@ -1309,7 +1309,7 @@ bool TermViewer::draw_image(std::string const & image_path)
         info_y,
         info_w,
         info_area_height,
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
     );
 
 
@@ -1365,14 +1365,14 @@ void TermViewer::draw_term_stack()
         y() + h() - button_bar_height * 2 - tsh,
         w(),
         tsh,
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
     );
 
     if (ts.size() < 2)
         return;
 
     fl_font(MONO_FONT, Settings::nil.as_font_size());
-    fl_color(Settings::nil.as_term_stack_color());
+    fl_color(ColorSettings::nil.as_term_stack_color());
 
     if (ts_display_start >= (int) ts.size() - 1)
         ts_display_start = (int) ts.size() - 2;
@@ -1414,7 +1414,7 @@ void TermViewer::draw_sorting_order_button_bar()
         y() + h() - button_bar_height * 2,
         w(),
         button_bar_height,
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
     );
 
     fl_font(MONO_FONT, Settings::nil.as_font_size() + 1);
@@ -1423,7 +1423,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::_hsh_::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "#",
@@ -1438,7 +1438,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::Y::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "Y",
@@ -1453,7 +1453,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::M::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "M",
@@ -1468,7 +1468,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::D::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "D",
@@ -1483,7 +1483,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::h::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "h",
@@ -1499,7 +1499,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::m::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "m",
@@ -1514,7 +1514,7 @@ void TermViewer::draw_sorting_order_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (nullptr != bv && bv->sorting_order() == SortingOrder::s::grab())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "s",
@@ -1538,7 +1538,7 @@ void TermViewer::draw_button_bar()
         y() + h() - button_bar_height,
         w(),
         button_bar_height,
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
         // FL_YELLOW
     );
 
@@ -1560,7 +1560,7 @@ void TermViewer::draw_button_bar()
         0
     );
 
-    fl_color(Settings::nil.as_term_stack_color());
+    fl_color(ColorSettings::nil.as_term_stack_color());
     fl_draw(
         "Del",
         x() + w() * ((button_count / 2) - 2) / button_count + margins,
@@ -1586,7 +1586,7 @@ void TermViewer::draw_button_bar()
 
     fl_color(Viewer::BookViewer::grab().as_foreground_color());
     if (Data::nil.as_fullscreen())
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
 
     fl_draw(
         "F11",
@@ -1627,7 +1627,7 @@ void TermViewer::draw_button_bar()
     {
         std::string s = std::to_string(lv->count());
 
-        fl_color(Settings::nil.as_highlight_color());
+        fl_color(ColorSettings::nil.as_highlight_color());
         fl_draw(
             s.c_str(),
             x() + w() * ((button_count / 2) + 3) / button_count + margins,

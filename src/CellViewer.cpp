@@ -57,6 +57,22 @@ CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
         abort();
     }
 
+    index_of_minus = matchmaker::lookup("-", &ok);
+    if (!ok)
+    {
+        std::cout << "Viewer::Viewer() --> failed to find index of minus!" << std::endl;
+        index_of_minus = -1;
+        abort();
+    }
+
+    index_of_colon = matchmaker::lookup(":", &ok);
+    if (!ok)
+    {
+        std::cout << "Viewer::Viewer() --> failed to find index of colon!" << std::endl;
+        index_of_colon = -1;
+        abort();
+    }
+
     reposition();
 }
 
@@ -87,7 +103,7 @@ void CellViewer::draw()
                     hover_box[1],
                     hover_box[2] + HOVER_BOX_MARGIN_SIZE * 2,
                     hover_box[3],
-                    Settings::nil.as_hover_color());
+                    ColorSettings::nil.as_hover_color());
     }
 }
 
@@ -96,7 +112,7 @@ void CellViewer::draw()
 void CellViewer::draw_scrollbar()
 {
     // clear
-    fl_rectf(scrollbar_x, y(), scrollbar_width, h(), Settings::nil.as_background_color());
+    fl_rectf(scrollbar_x, y(), scrollbar_width, h(), ColorSettings::nil.as_background_color());
 
     // only draw scrollbar when needed
     if (max_scroll_offset <= 0)
@@ -126,7 +142,7 @@ void CellViewer::draw_scrollbar()
                 scroller_mid - scroller_height / 2,
                 scrollbar_width,
                 scroller_height,
-                fl_darker(Settings::nil.as_background_color()));
+                fl_darker(ColorSettings::nil.as_background_color()));
 }
 
 
@@ -139,7 +155,7 @@ void CellViewer::draw_scrollbar_labels()
         y(),
         scrollbar_label_width,
         h(),
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
     );
 
     fl_color(type().as_foreground_color());
@@ -335,7 +351,7 @@ int CellViewer::handle(int event)
                     return 0;
 
                 Data::nil.set_hover_image_path("");
-                Settings::nil.set_hover_color(Settings::nil.as_hover_color_multi_loc());
+                ColorSettings::nil.set_hover_color(ColorSettings::nil.as_hover_color_multi_loc());
 
                 int const line_height = Settings::nil.as_line_height();
                 if (line_height == 0)
@@ -405,7 +421,8 @@ int CellViewer::handle(int event)
                                                   &location_count);
 
                             if (location_count < 2)
-                                Settings::nil.set_hover_color(Settings::nil.as_hover_color_single_loc());
+                                ColorSettings::nil.set_hover_color(
+                                        ColorSettings::nil.as_hover_color_single_loc());
 
 
                             auto prev_term =
@@ -565,7 +582,8 @@ int CellViewer::handle(int event)
                                                   &location_count);
 
                             if (location_count < 2)
-                                Settings::nil.set_hover_color(Settings::nil.as_hover_color_single_loc());
+                                ColorSettings::nil.set_hover_color(
+                                        ColorSettings::nil.as_hover_color_single_loc());
                         }
 
                         if (end > content_x + content_width - HOVER_BOX_MARGIN_SIZE)
@@ -834,7 +852,7 @@ void CellViewer::draw_content()
         y(),
         content_width + (content_margin * 2),
         h(),
-        Settings::nil.as_background_color()
+        ColorSettings::nil.as_background_color()
     );
 
     fl_color(type().as_foreground_color());
@@ -934,9 +952,9 @@ void CellViewer::draw_content()
                                         &index_within_first_ancestor, &term_is_linked_text);
 
                 // apply color from term or from ancestors if term's color is the foreground_color
-                Fl_Color draw_color = Settings::nil.as_term_colors().at(type())[term];
+                Fl_Color draw_color = ColorSettings::nil.as_term_colors().at(type())[term];
                 for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
-                    draw_color = Settings::nil.as_term_colors().at(type())[ancestors[i]];
+                    draw_color = ColorSettings::nil.as_term_colors().at(type())[ancestors[i]];
 
                 // linked handle & text color lightened unless selected
                 if (term_is_linked_text)
@@ -1096,9 +1114,15 @@ bool CellViewer::draw_header_for_left_scrollbar_orientation(
     xp = content_x + (content_width - subtitle_width_1);
 
     matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+    Fl_Color subtitle_color = ColorSettings::nil.as_year_color();
+    bool first_minus_encountered = false;
+    bool second_minus_encountered = false;
+    bool first_colon_encountered = false;
+    bool second_colon_encountered = false;
     bool first_space_encountered = false;
     bool second_space_encountered = false;
     bool third_space_encountered = false;
+    bool comma_encountered = false;
     for (int i = 0; i < term_count; ++i)
     {
         if (terms[i] == index_of_space)
@@ -1124,12 +1148,50 @@ bool CellViewer::draw_header_for_left_scrollbar_orientation(
                 continue;
             }
         }
+        else if (terms[i] == index_of_minus)
+        {
+            if (!first_minus_encountered)
+                first_minus_encountered = true;
+            else if (!second_minus_encountered)
+                second_minus_encountered = true;
+            subtitle_color = type().as_chapter_subtitle_color();
+        }
+        else if (terms[i] == index_of_colon)
+        {
+            if (!first_colon_encountered)
+                first_colon_encountered = true;
+            else if (!second_colon_encountered)
+                second_colon_encountered = true;
+            subtitle_color = type().as_chapter_subtitle_color();
+        }
         else if (terms[i] == index_of_comma)
         {
+            comma_encountered = true;
             yp += line_height;
             xp = content_x + (content_width - subtitle_width_3);
             xi = 0;
             continue;
+        }
+        else if (comma_encountered)
+        {
+            subtitle_color = fl_lighter(type().as_chapter_subtitle_color());
+        }
+        else
+        {
+            if (second_space_encountered)
+                subtitle_color = ColorSettings::nil.as_zone_color();
+            else if (second_colon_encountered)
+                subtitle_color = ColorSettings::nil.as_second_color();
+            else if (first_colon_encountered)
+                subtitle_color = ColorSettings::nil.as_minute_color();
+            else if (first_space_encountered)
+                subtitle_color = ColorSettings::nil.as_hour_color();
+            else if (second_minus_encountered)
+                subtitle_color = ColorSettings::nil.as_day_color();
+            else if (first_minus_encountered)
+                subtitle_color = ColorSettings::nil.as_month_color();
+            else
+                subtitle_color = ColorSettings::nil.as_year_color();
         }
 
         draw_cell(
@@ -1143,7 +1205,7 @@ bool CellViewer::draw_header_for_left_scrollbar_orientation(
             false,
             true,
             false,
-            type().as_chapter_subtitle_color(),
+            subtitle_color,
             xp,
             yp,
             xi
@@ -1176,9 +1238,15 @@ bool CellViewer::draw_header_for_right_scrollbar_orientation(
     int const * terms{nullptr};
     int term_count{0};
     matchmaker::chapter_subtitle(0, ch_i, &terms, &term_count);
+    Fl_Color subtitle_color = ColorSettings::nil.as_year_color();
+    bool first_minus_encountered = false;
+    bool second_minus_encountered = false;
+    bool first_colon_encountered = false;
+    bool second_colon_encountered = false;
     bool first_space_encountered = false;
     bool second_space_encountered = false;
     bool third_space_encountered = false;
+    bool comma_encountered = false;
     for (int i = 0; i < term_count; ++i)
     {
         if (terms[i] == index_of_space)
@@ -1204,13 +1272,52 @@ bool CellViewer::draw_header_for_right_scrollbar_orientation(
                 continue;
             }
         }
+        else if (terms[i] == index_of_minus)
+        {
+            if (!first_minus_encountered)
+                first_minus_encountered = true;
+            else if (!second_minus_encountered)
+                second_minus_encountered = true;
+            subtitle_color = type().as_chapter_subtitle_color();
+        }
+        else if (terms[i] == index_of_colon)
+        {
+            if (!first_colon_encountered)
+                first_colon_encountered = true;
+            else if (!second_colon_encountered)
+                second_colon_encountered = true;
+            subtitle_color = type().as_chapter_subtitle_color();
+        }
         else if (terms[i] == index_of_comma)
         {
+            comma_encountered = true;
             yp += line_height;
             xp = content_x;
             xi_subtitle_line_1 = xi;
             xi = 0;
+            subtitle_color = fl_lighter(subtitle_color);
             continue;
+        }
+        else if (comma_encountered)
+        {
+            subtitle_color = fl_lighter(type().as_chapter_subtitle_color());
+        }
+        else
+        {
+            if (second_space_encountered)
+                subtitle_color = ColorSettings::nil.as_zone_color();
+            else if (second_colon_encountered)
+                subtitle_color = ColorSettings::nil.as_second_color();
+            else if (first_colon_encountered)
+                subtitle_color = ColorSettings::nil.as_minute_color();
+            else if (first_space_encountered)
+                subtitle_color = ColorSettings::nil.as_hour_color();
+            else if (second_minus_encountered)
+                subtitle_color = ColorSettings::nil.as_day_color();
+            else if (first_minus_encountered)
+                subtitle_color = ColorSettings::nil.as_month_color();
+            else
+                subtitle_color = ColorSettings::nil.as_year_color();
         }
 
         draw_cell(
@@ -1224,7 +1331,7 @@ bool CellViewer::draw_header_for_right_scrollbar_orientation(
             false,
             true,
             false,
-            type().as_chapter_subtitle_color(),
+            subtitle_color,
             xp,
             yp,
             xi
@@ -1581,8 +1688,7 @@ void CellViewer::draw_wrapped_term(
                 int const x2 = xp + indent_x - indent_x * 2 / 5;
                 int const y2 = y1;
 
-
-                fl_color(Settings::nil.as_wrap_indicator_color());
+                fl_color(ColorSettings::nil.as_wrap_indicator_color());
                 fl_line(x0, y0, x1, y1, x2, y2);
             }
 

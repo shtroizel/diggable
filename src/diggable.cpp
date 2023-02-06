@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     // initialize term colors for each view
     {
         matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>> & term_colors =
-                Settings::nil.as_mutable_term_colors();
+                ColorSettings::nil.as_mutable_term_colors();
 
         for (auto v : Viewer::variants())
         {
