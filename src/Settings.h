@@ -13,13 +13,16 @@
 using TermColors = matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>>;
 
 
-PROPERTYx8_MATCHABLE(
+PROPERTYx11_MATCHABLE(
     int8_t, font_size,
     int8_t, chapter_font_size,
     int8_t, min_font_size,
     int8_t, max_font_size,
     int8_t, min_scrollbar_font_size,
     int8_t, max_scrollbar_font_size,
+    float, line_height_factor_standard,
+    float, line_height_factor_large,
+    float, line_height_factor_huge,
     float, line_height_factor,
     int8_t, line_height,
 
@@ -32,7 +35,13 @@ MATCHABLE_NIL_PROPERTY_VALUE(Settings, min_font_size, 11)
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, max_font_size, 19)
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, min_scrollbar_font_size, 9)
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, max_scrollbar_font_size, 14)
-MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, 1.33f)
+// MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, 1.33f)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor_standard, 1.618f - 4 * ((1.618f / 2) / 3) / 3)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor_large, 1.618f - 3 * ((1.618f / 2) / 3) / 3)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor_huge, 1.618f - 2 * ((1.618f / 2) / 3) / 3)
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, Settings::nil.as_line_height_factor_standard())
+// MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, Settings::nil.as_line_height_factor_large())
+// MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, Settings::nil.as_line_height_factor_huge())
 
 
 
