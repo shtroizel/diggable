@@ -48,6 +48,9 @@ private:
     int const button_count{7};
     int margins{5};
     int ts_display_start{0};
+    int syn_display_start{0};
+    int const * synonyms{nullptr};
+    int syn_count{0};
     int lines_to_scroll_at_a_time{1};
     int hover_box[4] = { -1, -1, -1, -1 };
     bool hover_box_visible{false};
@@ -57,6 +60,7 @@ private:
     int mouse_start_x{0};
     int mouse_start_y{0};
     int start_cs_display_start{0};
+    int start_syn_display_start{0};
     int start_ts_display_start{0};
 
     // (start line, line count)

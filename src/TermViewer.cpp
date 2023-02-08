@@ -343,21 +343,36 @@ int TermViewer::handle(int event)
                 mouse_start_x = ex;
                 mouse_start_y = ey;
 
-                if (ey > y() + h() - button_bar_height * 2 - tsh &&
-                        ey < y() + h() - button_bar_height * 2)
-                    start_ts_display_start = ts_display_start;
-                else
-                    start_ts_display_start = -1;
+                start_cs_display_start = -1;
+                start_syn_display_start = -1;
+                start_ts_display_start = -1;
 
-                if (ey > y() + search_bar_height &&
-                        ey < y() + h() - button_bar_height * 2 - tsh - info_area_height)
+                // completion stack area
+                if (
+                    ey > y() + search_bar_height &&
+                    ey < y() + h() - button_bar_height * 2 - tsh - info_area_height
+                )
                 {
                     CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                     start_cs_display_start = cs.top().display_start;
                 }
-                else
+
+                // info area
+                else if (
+                    ey > y() + h() - button_bar_height * 2 - tsh - info_area_height &&
+                    ey < y() + h() - button_bar_height * 2 - tsh
+                )
                 {
-                    start_cs_display_start = -1;
+                    start_syn_display_start = syn_display_start;
+                }
+
+                // term stack
+                else if (
+                    ey > y() + h() - button_bar_height * 2 - tsh &&
+                    ey < y() + h() - button_bar_height * 2
+                )
+                {
+                    start_ts_display_start = ts_display_start;
                 }
             }
             return 1;
@@ -393,11 +408,11 @@ int TermViewer::handle(int event)
                 // completion stack
                 else if (
                     cs.count() > 1 &&
-                    ey > y() + search_bar_height &&
-                    ey < y() + h() - button_bar_height * 2 - tsh - info_area_height - line_height - margins * 2
+                    ey > y() + search_bar_height + line_height &&
+                    ey < y() + h() - button_bar_height * 2 - tsh - info_area_height - line_height
                 )
                 {
-                    int ci = (ey - (y() + search_bar_height + margins)) / line_height;
+                    int ci = (ey - (y() + search_bar_height + line_height)) / line_height;
                     int box_width{0};
                     int const term = c[ci + cs.top().display_start];
                     matchmaker::at(term, &box_width);
@@ -421,12 +436,12 @@ int TermViewer::handle(int event)
                     if (ci < (int) c.size() - cs.top().display_start)
                     {
                         hover_box[0] = x() + margins * 2;
-                        hover_box[1] = hover_box_y * line_height + search_bar_height + margins;
+                        hover_box[1] = hover_box_y * line_height + search_bar_height + line_height;
                         hover_box[2] = w() - margins * 3;
                         hover_box[3] = hover_box_height;
 
                         int overlap = hover_box[1] + hover_box[3] -
-                                (y() + h() - button_bar_height * 2 - tsh - info_area_height - margins);
+                                (y() + h() - button_bar_height * 2 - tsh - info_area_height);
                         if (overlap > 0)
                         {
                             if (overlap > hover_box[3])
@@ -444,22 +459,54 @@ int TermViewer::handle(int event)
                     }
                 }
 
-                // term stack
+                // effective info area (without elided lines)
                 else if (
-                    ey > y() + h() - button_bar_height * 2 - tsh &&
-                    ey < y() + h() - button_bar_height * 2
+                    ey > y() + h() - button_bar_height * 2 - tsh - info_area_height + line_height &&
+                    ey < y() + h() - button_bar_height * 2 - tsh - line_height
                 )
                 {
-                    int i = (ey - (y() + h() - button_bar_height * 2 - tsh)) / line_height;
+                    if (!Data::nil.as_image_shown())
+                    {
+                        int const i = (
+                                        ey -
+                                        (
+                                            y() + h() - button_bar_height * 2 - tsh -
+                                            info_area_height + line_height
+                                        )
+                                    ) / line_height;
+                        int const available_lines = (info_area_height - line_height * 2) / line_height;
+
+                        if (i + syn_display_start < syn_count && i < available_lines)
+                        {
+                            hover_box[0] = x() + margins * 2;
+                            hover_box[1] = (
+                                            y() + h() - button_bar_height * 2 - tsh -
+                                            info_area_height + line_height
+                                        ) + i * line_height;
+                            hover_box[2] = w() - margins * 3;
+                            hover_box[3] = line_height;
+                            hover_box_visible = true;
+                        }
+                    }
+                }
+
+                // effective term stack area (without elided lines)
+                else if (
+                    ey > y() + h() - button_bar_height * 2 - tsh + line_height &&
+                    ey < y() + h() - button_bar_height * 2 - line_height
+                )
+                {
+                    int i = (ey - (y() + h() - button_bar_height * 2 - tsh + line_height)) / line_height;
                     if (i + ts_display_start < (int) Data::nil.as_term_stack().size() - 1)
                     {
                         hover_box[0] = x() + margins * 2;
-                        hover_box[1] = (y() + h() - button_bar_height * 2 - tsh) + i * line_height;
+                        hover_box[1] = (
+                                           y() + h() - button_bar_height * 2 -
+                                           tsh + line_height
+                                       ) + i * line_height;
                         hover_box[2] = w() - margins * 3;
                         hover_box[3] = line_height;
                         hover_box_visible = true;
-
-
                     }
                 }
 
@@ -569,12 +616,17 @@ int TermViewer::handle(int event)
                     redraw();
                 }
 
+                if (start_syn_display_start != -1)
+                {
+                    syn_display_start = start_syn_display_start - dl;
+                    redraw();
+                }
+
                 if (start_ts_display_start != -1)
                 {
                     ts_display_start = start_ts_display_start - dl;
                     redraw();
                 }
-
             }
             return 1;
 
@@ -594,10 +646,10 @@ int TermViewer::handle(int event)
                 if (diff_x < 0)
                     diff_x *= -1;
 
-                int const max_diff = 17;
+                int const min_diff_for_drag_scrolling = 17;
 
                 // if drag-scrolling
-                if (diff_y > max_diff || diff_x > max_diff)
+                if (diff_y > min_diff_for_drag_scrolling || diff_x > min_diff_for_drag_scrolling)
                 {
                     hover_box_visible = false;
                     redraw();
@@ -611,7 +663,6 @@ int TermViewer::handle(int event)
 
                     int const tsh = term_stack_height();
                     int const line_height = Settings::nil.as_line_height();
-                    int ci = (ey - (y() + search_bar_height + margins)) / line_height;
 
                     // backspace button
                     if (
@@ -638,10 +689,11 @@ int TermViewer::handle(int event)
                     // completion stack area
                     else if (
                         cs.count() > 1 &&
-                        ey > y() + search_bar_height &&
-                        ey < y() + h() - button_bar_height * 2 - tsh - info_area_height - line_height - margins * 2
+                        ey > y() + search_bar_height + line_height &&
+                        ey < y() + h() - button_bar_height * 2 - tsh - info_area_height - line_height * 2
                     )
                     {
+                        int ci = (ey - (y() + search_bar_height + line_height)) / line_height;
                         int sum = 0;
                         for (int dli = 0; dli < (int) display_locations.size(); ++dli)
                         {
@@ -673,39 +725,51 @@ int TermViewer::handle(int event)
                         ey < y() + h() - button_bar_height * 2 - tsh
                     )
                     {
-                        std::string image_path = Data::nil.as_click_image_path();
-                        if (image_path.empty())
-                            return 1;
-
-                        if (!Data::nil.as_image_maximized())
+                        if (Data::nil.as_image_shown())
                         {
-                            Data::nil.set_image_maximized(true);
-                            MainWindow * mw = Data::nil.as_main_window();
-                            if (nullptr != mw)
-                                mw->redraw();
+                            std::string image_path = Data::nil.as_click_image_path();
+                            if (image_path.empty())
+                                return 1;
+
+                            if (!Data::nil.as_image_maximized())
+                            {
+                                Data::nil.set_image_maximized(true);
+                                MainWindow * mw = Data::nil.as_main_window();
+                                if (nullptr != mw)
+                                    mw->redraw();
+                            }
+                        }
+                        else if (
+                            ey > y() + h() - button_bar_height * 2 - tsh - info_area_height + line_height &&
+                            ey < y() + h() - button_bar_height * 2 - tsh - line_height
+                        )
+                        {
+                            int i = ey - (y() + h() - button_bar_height * 2 - tsh - info_area_height + line_height);
+                            i /= line_height;
+                            i += syn_display_start;
+                            if (i >= 0 && i < syn_count)
+                            {
+                                Data::term_clicked(synonyms[i], Viewer::BookViewer::grab());
+                                redraw();
+                            }
                         }
                     }
 
                     // term stack
                     else if (
-                        ey > y() + h() - button_bar_height * 2 - tsh &&
-                        ey < y() + h() - button_bar_height * 2
+                        ey > y() + h() - button_bar_height * 2 - tsh + line_height &&
+                        ey < y() + h() - button_bar_height * 2 - line_height
                     )
                     {
-                        int i = (ey - (y() + h() - button_bar_height * 2 - tsh)) / line_height;
+                        int i = (ey - (y() + h() - button_bar_height * 2 - tsh + line_height)) / line_height;
                         i += ts_display_start;
                         auto const & ts = Data::nil.as_term_stack();
                         i = (int) ts.size() - 1 - i;
 
                         if (i > 0 && i < (int) ts.size() - 1)
                         {
-                            // std::cout << "term stack clicked!" << std::endl;
                             Data::term_clicked(ts[i].selected_term, Viewer::BookViewer::grab());
                             redraw();
-                        }
-                        else
-                        {
-                            // std::cout << "out of range!" << std::endl;
                         }
                     }
 
@@ -932,10 +996,21 @@ int TermViewer::handle(int event)
         case FL_MOUSEWHEEL:
             {
                 // scrolling within the completion area
-                if (Fl::event_y() < y() + h() - button_bar_height * 2 - term_stack_height())
+                if (Fl::event_y() < y() + h() - button_bar_height * 2 - term_stack_height() - info_area_height)
                 {
                     Data::nil.as_mutable_completion_stack().top().display_start +=
                             Fl::event_dy() * lines_to_scroll_at_a_time;
+                    redraw();
+                    return 1;
+                }
+
+                // scrolling within the info area
+                else if (
+                    Fl::event_y() < y() + h() - button_bar_height * 2 - term_stack_height()
+                    && !Data::nil.as_image_shown()
+                )
+                {
+                    syn_display_start += Fl::event_dy();
                     redraw();
                     return 1;
                 }
@@ -967,7 +1042,7 @@ int TermViewer::term_stack_height() const
     // if (lines < 1)
     //     lines = 1;
 
-    int const lines = 7;
+    int const lines = 9;
 
     int ret = lines * Settings::nil.as_line_height();
     if (ret > h() / 1.618 / 1.618)
@@ -1125,23 +1200,35 @@ void TermViewer::draw_completion()
     {
         std::vector<int> const & sc = cs.top().standard_completion;
 
-        if (cs.top().display_start >= (int) sc.size())
+        int available_lines = (h() - search_bar_height - tsh -
+                button_bar_height * 2 - info_area_height - line_height * 3) / line_height;
+
+        if (cs.top().display_start > (int) sc.size() - 1)
             cs.top().display_start = (int) sc.size() - 1;
         if (cs.top().display_start < 0)
             cs.top().display_start = 0;
 
-        int display_count = (int) sc.size() - cs.top().display_start;
+        int terms_to_draw = (int) sc.size() - cs.top().display_start;
         int const available_width = (int) ((w() - margins * 3) / fl_width("Q"));
         int const indent_char_count = 3;
         int const indent_x = fl_width("q") * indent_char_count;
-        int available_lines = (h() - search_bar_height - margins * 2 - tsh -
-                button_bar_height * 2 - info_area_height) / line_height;
 
-        int const max_y = y() + h() - button_bar_height * 2 - tsh - info_area_height;
+        int const max_y = y() + h() - button_bar_height * 2 - tsh - info_area_height - line_height;
         int const xp = x() + margins * 2;
-        int yp = y() + search_bar_height + margins * 2 + line_height / 2;
+        int yp = y() + search_bar_height + line_height / 2 + fl_descent();
 
-        for (int i = 0; i < display_count && i < available_lines; ++i)
+        if (cs.top().display_start > 0)
+        {
+            fl_color(ColorSettings::nil.as_term_colors().at(Viewer::TermViewer::grab())[
+                    sc[cs.top().display_start - 1]]);
+            fl_draw("...", xp, yp);
+        }
+
+        yp += line_height;
+
+        int i = 0;
+        int lines_drawn = 0;
+        for (; i < terms_to_draw && lines_drawn <= available_lines; ++i)
         {
             int word_len{0};
             char const * word = matchmaker::at(sc[cs.top().display_start + i], &word_len);
@@ -1172,8 +1259,12 @@ void TermViewer::draw_completion()
                             ++cur_chars_to_write;
                     }
 
-                    if (yp + line_height < max_y)
+                    if (yp < max_y)
+                    {
                         fl_draw(word, cur_chars_to_write, xp, yp);
+                        ++lines_drawn;
+                        yp += line_height;
+                    }
 
                     display_locations[i].first = i;
                     display_locations[i].second = 1;
@@ -1195,38 +1286,43 @@ void TermViewer::draw_completion()
                             ++cur_chars_to_write;
                     }
 
-                    if (yp + line_height < max_y)
+                    if (yp < max_y)
+                    {
                         fl_draw(word, cur_chars_to_write, xp + indent_x, yp);
+                        ++lines_drawn;
 
-                    Fl_Color prev_color = fl_color();
-                    fl_color(ColorSettings::nil.as_wrap_indicator_color());
+                        Fl_Color prev_color = fl_color();
+                        fl_color(ColorSettings::nil.as_wrap_indicator_color());
 
-                    int const x0 = xp + indent_x / 5;
-                    int const y0 = yp - line_height * 4 / 7;
+                        int const x0 = xp + indent_x / 5;
+                        int const y0 = yp - line_height * 4 / 7;
 
-                    int const x1 = x0;
-                    int const y1 = yp - line_height * 2 / 7;
+                        int const x1 = x0;
+                        int const y1 = yp - line_height * 2 / 7;
 
-                    int const x2 = xp + indent_x - indent_x * 2 / 5;
-                    int const y2 = y1;
+                        int const x2 = xp + indent_x - indent_x * 2 / 5;
+                        int const y2 = y1;
 
-                    if (y2 + line_height < max_y)
-                        fl_line(x0, y0, x1, y1, x2, y2);
+                        if (y2 < max_y)
+                            fl_line(x0, y0, x1, y1, x2, y2);
 
-                    fl_color(prev_color);
-                    --available_lines;
+                        fl_color(prev_color);
 
-                    if (i < (int) display_locations.size())
-                        display_locations[i].second += 1;
+                        if (i < (int) display_locations.size())
+                            display_locations[i].second += 1;
+
+                        yp += line_height;
+                    }
                 }
 
                 word += cur_chars_to_write;
                 total_chars_written += cur_chars_to_write;
-                yp += line_height;
             }
         }
-    }
 
+        if (i < terms_to_draw)
+            fl_draw("...", xp, yp);
+    }
 }
 
 
@@ -1247,26 +1343,129 @@ void TermViewer::draw_info_area()
     }
 
     if (draw_image(image_path))
-    {
         Data::nil.set_image_shown(true);
-        // if (Data::nil.as_image_maximized())
-        // {
-        //     BookViewer * bv = Data::nil.as_book_viewer();
-        //     if (nullptr != bv)
-        //         bv->redraw();
-        //
-        //     LocationViewer * lv = Data::nil.as_location_viewer();
-        //     if (nullptr != lv)
-        //         lv->redraw();
-        // }
-    }
 }
 
 
 
 void TermViewer::draw_synonyms()
 {
-    // std::cout << "TermViewer::draw_synonyms()" << std::endl;
+    // int term = Data::nil.as_hovered_term();
+    int term = -1;
+    if (-1 == term)
+    {
+        TermStack const & ts = Data::nil.as_term_stack();
+        if (ts.size() < 2)
+            return;
+
+        term = ts[ts.size() - 1].selected_term;
+    }
+
+    int const tsh = term_stack_height();
+    int const line_height = Settings::nil.as_line_height();
+
+
+    synonyms = nullptr;
+    syn_count = 0;
+    matchmaker::synonyms(term, &synonyms, &syn_count);
+
+    // if no synonyms then try lower cased version
+    if (syn_count == 0)
+    {
+        std::string lower_as_str = matchmaker::at(term, nullptr);
+        std::transform(lower_as_str.begin(), lower_as_str.end(), lower_as_str.begin(),
+                [](unsigned char c){ return std::tolower(c); });
+        bool found = false;
+        term = matchmaker::lookup(lower_as_str.c_str(), &found);
+        if (!found)
+            return;
+
+        matchmaker::synonyms(term, &synonyms, &syn_count);
+
+        // if still no synonyms then check for trailing 's'
+        if (syn_count == 0)
+        {
+            if (lower_as_str.size() > 0 && lower_as_str[lower_as_str.size() - 1] == 's')
+            {
+                lower_as_str.pop_back();
+                term = matchmaker::lookup(lower_as_str.c_str(), &found);
+                if (!found)
+                    return;
+
+                matchmaker::synonyms(term, &synonyms, &syn_count);
+                if (syn_count == 0)
+                    return;
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+
+    info_area_height = syn_count + 2;
+    if (info_area_height > 19)
+        info_area_height = 19;
+
+    // std::cout << "info_area_height in lines: " << info_area_height << std::endl;
+    info_area_height *= line_height;
+
+    while (h() - (tsh + button_bar_height * 2 + info_area_height + search_bar_height) < h() * 0.17)
+        info_area_height -= line_height;
+
+    int const info_w = w();
+    int const info_x = x();
+    int const info_y = y() + h() - button_bar_height * 2 - tsh - info_area_height;
+
+    // clear
+    fl_rectf(
+        info_x,
+        info_y,
+        info_w,
+        info_area_height,
+        // fl_lighter(ColorSettings::nil.as_background_color())
+        ColorSettings::nil.as_background_color()
+    );
+
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
+    Fl_Color syn_color = fl_rgb_color(65,105,225);
+    fl_color(syn_color);
+
+    int const available_lines = (info_area_height - line_height * 2) / line_height;
+
+    if (syn_display_start > syn_count - available_lines)
+        syn_display_start = syn_count - available_lines;
+    if (syn_display_start < 0)
+        syn_display_start = 0;
+
+    int const available_length = (int) ((w() - margins * 3) / fl_width("Q"));
+    int const xp = x() + margins * 2;
+    int draw_length = 0;
+    int lines_drawn = 0;
+    int yp = info_y + line_height / 2 + fl_descent();
+
+    if (syn_display_start > 0)
+        fl_draw("...", xp, yp);
+
+    yp += line_height;
+
+    int i = syn_display_start;
+    for (; lines_drawn < available_lines && i < syn_count; ++i)
+    {
+        char const * s = matchmaker::at(synonyms[i], &draw_length);
+
+        if (draw_length > available_length)
+        {
+            draw_length = available_length - 3;
+            fl_draw("...", xp + draw_length * fl_width("q"), yp);
+        }
+        fl_draw(s, draw_length, xp, yp);
+
+        yp += line_height;
+        ++lines_drawn;
+    }
+    if (i < syn_count)
+        fl_draw("...", xp, yp);
 }
 
 
@@ -1374,21 +1573,29 @@ void TermViewer::draw_term_stack()
     fl_font(MONO_FONT, Settings::nil.as_font_size());
     fl_color(ColorSettings::nil.as_term_stack_color());
 
-    if (ts_display_start >= (int) ts.size() - 1)
-        ts_display_start = (int) ts.size() - 2;
+    int const line_height = Settings::nil.as_line_height();
+    int const available_lines = (tsh - line_height * 2) / line_height;
+
+    if (ts_display_start > (int) ts.size() - 1 - available_lines)
+        ts_display_start = (int) ts.size() - 1 - available_lines;
     if (ts_display_start < 0)
         ts_display_start = 0;
 
-    int const line_height = Settings::nil.as_line_height();
-    int const available_lines = tsh / line_height;
-    int display_count = available_lines;
     int const available_length = (int) ((w() - margins * 3) / fl_width("Q"));
 
     int const xp = x() + margins * 2;
     int yp = y() + h() - button_bar_height * 2 - tsh + line_height / 2 + fl_descent();
+
+    if (ts_display_start > 0)
+        fl_draw("...", xp, yp);
+
+    yp += line_height;
+
     int draw_length = 0;
     int lines_drawn = 0;
-    for (size_t i = ts.size() - ts_display_start; lines_drawn < display_count && i-- > 1;)
+
+    size_t i = ts.size() - ts_display_start;
+    for (; lines_drawn < available_lines && i-- > 1;)
     {
         char const * s = matchmaker::at(ts[i].selected_term, &draw_length);
 
@@ -1402,6 +1609,9 @@ void TermViewer::draw_term_stack()
         yp += line_height;
         ++lines_drawn;
     }
+
+    if (i > 1)
+        fl_draw("...", xp, yp);
 }
 
 
