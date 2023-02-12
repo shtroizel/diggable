@@ -40,7 +40,7 @@ MainWindow::MainWindow(int w, int h, char const * t) : Fl_Double_Window(w, h, t)
     Data::nil.set_location_viewer(location_viewer);
     Data::nil.set_main_window(this);
 
-    size_range(792, 432, 0, 0, 0, 0);
+    size_range(792, 612, 0, 0, 0, 0);
 }
 
 
