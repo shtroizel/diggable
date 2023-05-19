@@ -127,6 +127,7 @@ private:
     int index_of_comma{-1};
     int index_of_minus{-1};
     int index_of_colon{-1};
+    int index_of_http{-1};
     bool mouse_down{false};
     int mouse_start_y{0};
     int mouse_start_x{0};

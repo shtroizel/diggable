@@ -73,6 +73,14 @@ CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
         abort();
     }
 
+    index_of_http = matchmaker::lookup("http", &ok);
+    if (!ok)
+    {
+        std::cout << "Viewer::Viewer() --> failed to find index of http!" << std::endl;
+        index_of_http = -1;
+        abort();
+    }
+
     reposition();
 }
 
@@ -382,8 +390,9 @@ int CellViewer::handle(int event)
                         (
                             c.end - c.start > fl_width("Q") * 1.5 ||
                             c.term == index_of_space ||
-                            c.term == index_of_slash
-                        )
+                            (c.term == index_of_slash && c.ancestor_count > 0)
+                        ) &&
+                        c.term != index_of_http
                     )
                     {
                         start = c.start;
@@ -568,7 +577,7 @@ int CellViewer::handle(int event)
                         }
                         else
                         {
-                            // only offer termsr that appear at least twice
+                            // only offer terms that appear at least twice
                             int const * book_components = nullptr;
                             int const * chapter_components = nullptr;
                             int const * paragraph_components = nullptr;
