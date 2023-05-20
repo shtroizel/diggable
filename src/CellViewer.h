@@ -102,6 +102,11 @@ private:
     void draw_scrollbar_labels();
     void draw_content();
     void reposition();
+    bool prev_term(int tx, int ty, int & px, int & py);
+    bool next_term(int tx, int ty, int & nx, int & ny);
+    bool within_selection(int tx, int ty);
+    void prepare_draw_color(int tx, int ty, int px, int py, int pw, int ph, Fl_Color text_color);
+    void copy_selection();
 
 
     Fl_Boxtype scroller_boxtype{FL_BORDER_FRAME};
@@ -131,6 +136,11 @@ private:
     bool mouse_down{false};
     int mouse_start_y{0};
     int mouse_start_x{0};
+    int selection_start_ty{0};
+    int selection_start_tx{0};
+    int selection_end_ty{0};
+    int selection_end_tx{0};
+    bool currently_selecting{false};
     int start_scroll_offset{0};
     int chapter_offset{-1};
     int saved_chapter_offset{-1};

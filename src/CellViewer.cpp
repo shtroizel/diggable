@@ -326,6 +326,30 @@ int CellViewer::handle(int event)
 
                 int const ex = Fl::event_x();
                 int const ey = Fl::event_y();
+
+                if (Fl::event_button() == FL_RIGHT_MOUSE)
+                {
+
+                    int const line_height = Settings::nil.as_line_height();
+                    if (line_height == 0)
+                        return 1;
+
+                    selection_start_ty = (ey - y()) / line_height;
+                    for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                    {
+                        selection_start_tx = tx;
+                        Cell & c = cells[selection_start_ty][tx];
+                        if (ex > c.start && ex < c.end)
+                            break;
+                    }
+
+                    currently_selecting = true;
+                    selection_end_tx = selection_start_tx;
+                    selection_end_ty = selection_start_ty;
+
+                    return 1;
+                }
+
                 mouse_down = true;
                 mouse_start_x = ex;
                 mouse_start_y = ey;
@@ -416,7 +440,8 @@ int CellViewer::handle(int event)
                             )
                         )
                         {
-                            // only offer phrases that appear at least twice
+                            // color phrases that appear at least twice differently
+                            // than those that only appear once
                             int const * book_components = nullptr;
                             int const * chapter_components = nullptr;
                             int const * paragraph_components = nullptr;
@@ -432,55 +457,6 @@ int CellViewer::handle(int event)
                             if (location_count < 2)
                                 ColorSettings::nil.set_hover_color(
                                         ColorSettings::nil.as_hover_color_single_loc());
-
-
-                            auto prev_term =
-                                    [&](int tx, int ty, int & px, int & py) -> bool
-                                    {
-                                        if (tx > 0)
-                                        {
-                                            px = tx - 1;
-                                            py = ty;
-                                            return true;
-                                        }
-
-                                        if (ty == 0)
-                                        {
-                                            px = 0;
-                                            py = 0;
-                                            return false;
-                                        }
-
-                                        py = ty - 1;
-                                        px = MAX_CELLS_PER_LINE - 1;
-                                        while (px > 0 && cells[py][px].term == -1)
-                                            --px;
-
-                                        return cells[py][px].term != -1;
-                                    };
-
-                            auto next_term =
-                                    [&](int tx, int ty, int & nx, int & ny) -> bool
-                                    {
-                                        ny = ty;
-
-                                        if (tx < MAX_CELLS_PER_LINE - 1 && cells[ty][tx + 1].term != -1)
-                                        {
-                                            nx = tx + 1;
-                                            return true;
-                                        }
-
-                                        if (ty >= MAX_LINES - 1)
-                                        {
-                                            nx = tx;
-                                            std::cout << "ty >= MAX_LINES !!!" << std::endl;
-                                            return false;
-                                        }
-
-                                        ++ny;
-                                        nx = 0;
-                                        return true;
-                                    };
 
                             // search prev terms to find some parts of the box
                             txi = tx;
@@ -577,7 +553,8 @@ int CellViewer::handle(int event)
                         }
                         else
                         {
-                            // only offer terms that appear at least twice
+                            // color terms that appear at least twice differently
+                            // than those that only appear once
                             int const * book_components = nullptr;
                             int const * chapter_components = nullptr;
                             int const * paragraph_components = nullptr;
@@ -636,27 +613,54 @@ int CellViewer::handle(int event)
 
         case FL_DRAG:
             {
-                int dy = Fl::event_y() - mouse_start_y;
-
-                if (dragging_scroller)
+                if (Fl::event_button() == FL_RIGHT_MOUSE)
                 {
-                    scroll_to_y(Fl::event_y());
+                    int const ex = Fl::event_x();
+                    int const ey = Fl::event_y();
+
+                    int const line_height = Settings::nil.as_line_height();
+                    if (line_height == 0)
+                        return 1;
+
+                    selection_end_ty = (ey - y()) / line_height;
+                    for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                    {
+                        Cell & c = cells[selection_end_ty][tx];
+                        if (ex > c.start && ex < c.end)
+                        {
+                            selection_end_tx = tx;
+                            break;
+                        }
+                    }
+
+                    // std::cout << "selection: [" << selection_start_ty << "][" << selection_start_tx
+                    //           << "] --> [" << selection_end_ty << "][" << selection_end_tx << "]"
+                    //           << std::endl;
                 }
                 else
                 {
-                    if (mouse_down)
+                    int dy = Fl::event_y() - mouse_start_y;
+
+                    if (dragging_scroller)
                     {
-                        // force line boundary
-                        // int const line_height = Settings::nil.as_line_height();
-                        // scroll_offset() = start_scroll_offset - ((dy / line_height) * line_height);
+                        scroll_to_y(Fl::event_y());
+                    }
+                    else
+                    {
+                        if (mouse_down)
+                        {
+                            // force line boundary
+                            // int const line_height = Settings::nil.as_line_height();
+                            // scroll_offset() = start_scroll_offset - ((dy / line_height) * line_height);
 
-                        // or force line boundary on release instead (smooth)
-                        scroll_offset() = start_scroll_offset - dy;
+                            // or force line boundary on release instead (smooth)
+                            scroll_offset() = start_scroll_offset - dy;
 
-                        if (scroll_offset() < 0)
-                            scroll_offset() = 0;
-                        else if (scroll_offset() > max_scroll_offset)
-                            scroll_offset() = max_scroll_offset;
+                            if (scroll_offset() < 0)
+                                scroll_offset() = 0;
+                            else if (scroll_offset() > max_scroll_offset)
+                                scroll_offset() = max_scroll_offset;
+                        }
                     }
                 }
 
@@ -669,107 +673,117 @@ int CellViewer::handle(int event)
             {
                 Data::restore_image();
             }
-            else if (!dragging_scroller)
+            else if (Fl::event_button() == FL_RIGHT_MOUSE)
             {
-                int const ey = Fl::event_y();
-                int const ex = Fl::event_x();
-                int diff_y = ey - mouse_start_y;
-                if (diff_y < 0)
-                    diff_y *= -1;
-                int diff_x = ex - mouse_start_x;
-                if (diff_x < 0)
-                    diff_x *= -1;
-
-                int const max_diff = 17;
-                int const line_height = Settings::nil.as_line_height();
-                if (line_height == 0)
-                    return 1;
-
-                // if drag-scrolling then snap to line boundary
-                if (diff_y > max_diff || diff_x > max_diff)
+                copy_selection();
+                currently_selecting = false;
+                selection_start_tx = selection_end_tx;
+                selection_start_ty = selection_end_ty;
+            }
+            else
+            {
+                if (!dragging_scroller)
                 {
+                    int const ey = Fl::event_y();
+                    int const ex = Fl::event_x();
+                    int diff_y = ey - mouse_start_y;
+                    if (diff_y < 0)
+                        diff_y *= -1;
+                    int diff_x = ex - mouse_start_x;
+                    if (diff_x < 0)
+                        diff_x *= -1;
 
-                    scroll_offset() = (scroll_offset() / line_height) * line_height;
-                    if (scroll_offset() < 0)
-                        scroll_offset() = 0;
-                    else if (scroll_offset() > max_scroll_offset)
-                        scroll_offset() = max_scroll_offset;
+                    int const max_diff = 17;
+                    int const line_height = Settings::nil.as_line_height();
+                    if (line_height == 0)
+                        return 1;
 
-                    // hover_box_visible = false;
-
-                    // enforce minimum scroll amount
-                    // int diff_scroll_offset = scroll_offset() - start_scroll_offset;
-                    // if (diff_scroll_offset < 0)
-                    //     diff_scroll_offset *= -1;
-                    // if (diff_scroll_offset < 3 * line_height)
-                    //     scroll_offset() = start_scroll_offset;
-                    redraw();
-                }
-                // otherwise process click
-                else
-                {
-                    // std::cout << "click!" << std::endl;
-                // }
-
-                // if (diff_y <= max_diff && diff_x <= max_diff)
-                // {
-                //     std::cout << "click!" << std::endl;
-
-
-                    int const ty = (ey - y()) / Settings::nil.as_line_height();
-                    int term{-1};
-                    for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                    // if drag-scrolling then snap to line boundary
+                    if (diff_y > max_diff || diff_x > max_diff)
                     {
-                        Cell & c = cells[ty][tx];
 
-                        if (ex > c.start && ex < c.end)
+                        scroll_offset() = (scroll_offset() / line_height) * line_height;
+                        if (scroll_offset() < 0)
+                            scroll_offset() = 0;
+                        else if (scroll_offset() > max_scroll_offset)
+                            scroll_offset() = max_scroll_offset;
+
+                        // hover_box_visible = false;
+
+                        // enforce minimum scroll amount
+                        // int diff_scroll_offset = scroll_offset() - start_scroll_offset;
+                        // if (diff_scroll_offset < 0)
+                        //     diff_scroll_offset *= -1;
+                        // if (diff_scroll_offset < 3 * line_height)
+                        //     scroll_offset() = start_scroll_offset;
+                        redraw();
+                    }
+                    // otherwise process click
+                    else
+                    {
+                        // std::cout << "click!" << std::endl;
+                    // }
+
+                    // if (diff_y <= max_diff && diff_x <= max_diff)
+                    // {
+                    //     std::cout << "click!" << std::endl;
+
+
+                        int const ty = (ey - y()) / Settings::nil.as_line_height();
+                        int term{-1};
+                        for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
                         {
-                            if (c.within_chapter_subtitle)
+                            Cell & c = cells[ty][tx];
+
+                            if (ex > c.start && ex < c.end)
                             {
-                                return 1;
-                            }
+                                if (c.within_chapter_subtitle)
+                                {
+                                    return 1;
+                                }
 
-                            term = c.term;
+                                term = c.term;
 
-                            // activate parent term instead when over space between terms
-                            if (
-                                c.ancestor_count > 0 &&
-                                (
-                                    c.term == index_of_space ||
-                                    c.term == index_of_slash
+                                // activate parent term instead when over space between terms
+                                if (
+                                    c.ancestor_count > 0 &&
+                                    (
+                                        c.term == index_of_space ||
+                                        c.term == index_of_slash
+                                    )
                                 )
-                            )
-                            {
-                                // // but only offer phrases that appear at least twice,
-                                // // so get the location_count
-                                // int const * book_components = nullptr;
-                                // int const * chapter_components = nullptr;
-                                // int const * paragraph_components = nullptr;
-                                // int const * word_components = nullptr;
-                                // int location_count = 0;
-                                // matchmaker::locations(t.ancestors[0],
-                                //                       &book_components,
-                                //                       &chapter_components,
-                                //                       &paragraph_components,
-                                //                       &word_components,
-                                //                       &location_count);
-                                // if (location_count > 1)
-                                //     term = t.ancestors[0];
-                                // else
-                                //     return 1;
-                                term = c.ancestors[0];
+                                {
+                                    // // but only offer phrases that appear at least twice,
+                                    // // so get the location_count
+                                    // int const * book_components = nullptr;
+                                    // int const * chapter_components = nullptr;
+                                    // int const * paragraph_components = nullptr;
+                                    // int const * word_components = nullptr;
+                                    // int location_count = 0;
+                                    // matchmaker::locations(t.ancestors[0],
+                                    //                       &book_components,
+                                    //                       &chapter_components,
+                                    //                       &paragraph_components,
+                                    //                       &word_components,
+                                    //                       &location_count);
+                                    // if (location_count > 1)
+                                    //     term = t.ancestors[0];
+                                    // else
+                                    //     return 1;
+                                    term = c.ancestors[0];
+                                }
+
+                                if (!c.within_chapter_title && !c.within_chapter_subtitle)
+                                    Data::term_clicked(term, type());
+
+                                break;
                             }
-
-                            if (!c.within_chapter_title && !c.within_chapter_subtitle)
-                                Data::term_clicked(term, type());
-
-                            break;
                         }
                     }
                 }
+                mouse_down = false;
+                dragging_scroller = false;
             }
-            mouse_down = false;
-            dragging_scroller = false;
             return 1;
 
         case FL_MOUSEWHEEL:
@@ -1501,14 +1515,23 @@ void CellViewer::draw_cell(
 
     if (yp >= scroll_offset())
     {
-        if (!offsets_dirty)
-        {
-            fl_color(draw_color);
-            fl_draw(s, s_len, xp, yp - line_height - scroll_offset() + fl_size());
-        }
         int yi = (yp - line_height - scroll_offset()) / line_height;
         if (yi < 0)
             yi = 0;
+
+        if (!offsets_dirty)
+        {
+            prepare_draw_color(
+                xi,
+                yi,
+                xp,
+                yp - line_height - scroll_offset(),
+                s_len * fl_width('Q'),
+                (int) (fl_size() * Settings::nil.as_line_height_factor()),
+                draw_color
+            );
+            fl_draw(s, s_len, xp, yp - line_height - scroll_offset() + fl_size());
+        }
 
         if (yi < MAX_LINES)
         {
@@ -1644,7 +1667,15 @@ void CellViewer::draw_wrapped_term(
 
             if (!offsets_dirty)
             {
-                fl_color(draw_color);
+                prepare_draw_color(
+                    xi,
+                    yi,
+                    xp,
+                    yp - line_height - scroll_offset(),
+                    s_len * fl_width('Q'),
+                    (int) (fl_size() * Settings::nil.as_line_height_factor()),
+                    draw_color
+                );
                 fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset() + fl_size());
             }
 
@@ -1684,7 +1715,15 @@ void CellViewer::draw_wrapped_term(
 
             if (!offsets_dirty)
             {
-                fl_color(draw_color);
+                prepare_draw_color(
+                    xi,
+                    yi,
+                    xp,
+                    yp - line_height - scroll_offset(),
+                    s_len * fl_width('Q'),
+                    (int) (fl_size() * Settings::nil.as_line_height_factor()),
+                    draw_color
+                );
                 int typ = yp - line_height - scroll_offset() + fl_size();
                 fl_draw(s, cur_chars_to_write, xp + indent_x, typ);
 
@@ -1772,4 +1811,139 @@ void CellViewer::reposition()
     );
 
     content_width = w() - scrollbar_width - scrollbar_label_width - (content_margin * 2);
+}
+
+
+bool CellViewer::prev_term(int tx, int ty, int & px, int & py)
+{
+    if (tx > 0)
+    {
+        px = tx - 1;
+        py = ty;
+        return true;
+    }
+
+    if (ty == 0)
+    {
+        px = 0;
+        py = 0;
+        return false;
+    }
+
+    py = ty - 1;
+    px = MAX_CELLS_PER_LINE - 1;
+    while (px > 0 && cells[py][px].term == -1)
+        --px;
+
+    return cells[py][px].term != -1;
+}
+
+
+bool CellViewer::next_term(int tx, int ty, int & nx, int & ny)
+{
+    ny = ty;
+
+    if (tx < MAX_CELLS_PER_LINE - 1 && cells[ty][tx + 1].term != -1)
+    {
+        nx = tx + 1;
+        return true;
+    }
+
+    if (ty >= MAX_LINES - 1)
+    {
+        nx = tx;
+        std::cout << "next_term() --> ty >= MAX_LINES !!!" << std::endl;
+        return false;
+    }
+
+    ++ny;
+    nx = 0;
+    return true;
+}
+
+
+bool CellViewer::within_selection(int tx, int ty)
+{
+    // if reverse selection (right -> left, bottom -> top)
+    if (
+        (selection_end_ty == selection_start_ty && selection_end_tx < selection_start_tx) ||
+        selection_end_ty < selection_start_ty
+    )
+    {
+        if (selection_start_ty == selection_end_ty)
+            return ty == selection_start_ty && selection_end_tx <= tx && tx <= selection_start_tx;
+
+        if (ty == selection_start_ty)
+            return tx <= selection_start_tx;
+
+        if (ty == selection_end_ty)
+            return tx >= selection_end_tx;
+
+        if (selection_end_ty < ty && ty < selection_start_ty)
+            return true;
+
+        return false;
+    }
+
+    if (selection_start_ty == selection_end_ty)
+        return ty == selection_start_ty && selection_start_tx <= tx && tx <= selection_end_tx;
+
+    if (ty == selection_start_ty)
+        return tx >= selection_start_tx;
+
+    if (ty == selection_end_ty)
+        return tx <= selection_end_tx;
+
+    if (selection_start_ty < ty && ty < selection_end_ty)
+        return true;
+
+    return false;
+}
+
+
+void CellViewer::prepare_draw_color(int tx, int ty, int px, int py, int pw, int ph, Fl_Color text_color)
+{
+    if (currently_selecting && within_selection(tx, ty))
+    {
+        fl_draw_box(FL_FLAT_BOX, px, py, pw, ph, text_color);
+        fl_color(ColorSettings::nil.as_background_color());
+    }
+    else
+    {
+        fl_color(text_color);
+    }
+}
+
+
+void CellViewer::copy_selection()
+{
+    std::string text;
+    int xi = selection_start_tx;
+    int yi = selection_start_ty;
+    int next_yi = -1;
+
+    // if reverse selection (right -> left, bottom -> top)
+    if (
+        (selection_end_ty == selection_start_ty && selection_end_tx < selection_start_tx) ||
+        selection_end_ty < selection_start_ty
+    )
+    {
+        xi = selection_end_tx;
+        yi = selection_end_ty;
+    }
+
+    while (within_selection(xi, yi))
+    {
+        text += matchmaker::at(cells[yi][xi].term, nullptr);
+        if (!next_term(xi, yi, xi, next_yi))
+            break;
+
+        if (next_yi > yi)
+            text += "\n";
+
+        yi = next_yi;
+    }
+
+    Fl::copy(text.c_str(), text.size(), 2);
+    // std::cout << "copied selection: " << text << std::endl;
 }
