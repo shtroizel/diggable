@@ -7,6 +7,7 @@
 
 #include <BookViewer.h>
 #include <LocationViewer.h>
+#include <MainWindow.h>
 #include <Settings.h>
 #include <TermViewer.h>
 #include <Viewer.h>
@@ -286,16 +287,8 @@ namespace Data
     {
         Data::nil.set_image_maximized(false);
 
-        TermViewer * tv = Data::nil.as_term_viewer();
-        if (nullptr != tv)
-            tv->redraw();
-
-        BookViewer * bv = Data::nil.as_book_viewer();
-        if (nullptr != bv)
-            bv->redraw();
-
-        LocationViewer * lv = Data::nil.as_location_viewer();
-        if (nullptr != lv)
-            lv->redraw();
+        MainWindow * mw = Data::nil.as_main_window();
+        if (nullptr != mw)
+            mw->redraw();
     }
 }

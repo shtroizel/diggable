@@ -580,7 +580,6 @@ int TermViewer::handle(int event)
                         hover_box_visible = true;
                     }
                     else if ( // right button
-                        ey < y() + h() - button_bar_height &&
                         ex > x() + w() * ((button_count / 2) + 3) / button_count + margins &&
                         ex < x() + w() * ((button_count / 2) + 4) / button_count - margins
                     )
@@ -988,6 +987,17 @@ int TermViewer::handle(int event)
                         ex < x() + w() * ((button_count / 2) + 4) / button_count - margins
                     )
                     {
+                        if (
+                            Settings::nil.as_mouse_button_orientation() ==
+                            MouseButtonOrientation::L_spc_R::grab()
+                        )
+                            Settings::nil.set_mouse_button_orientation(
+                                MouseButtonOrientation::R_spc_L::grab()
+                            );
+                        else
+                            Settings::nil.set_mouse_button_orientation(
+                                MouseButtonOrientation::L_spc_R::grab()
+                            );
                     }
                 }
             }
@@ -1832,23 +1842,16 @@ void TermViewer::draw_button_bar()
         0
     );
 
-    LocationViewer * lv = Data::nil.as_location_viewer();
-    if (nullptr != lv && lv->count() > 0)
-    {
-        std::string s = std::to_string(lv->count());
-
-        fl_color(ColorSettings::nil.as_highlight_color());
-        fl_draw(
-            s.c_str(),
-            x() + w() * ((button_count / 2) + 3) / button_count + margins,
-            y() + h() - button_bar_height,
-            w() / button_count - margins * 2,
-            button_bar_height,
-            FL_ALIGN_CENTER,
-            nullptr,
-            0
-        );
-    }
+    fl_draw(
+        Settings::nil.as_mouse_button_orientation().as_string().c_str(),
+        x() + w() * ((button_count / 2) + 3) / button_count + margins,
+        y() + h() - button_bar_height,
+        w() / button_count - margins * 2,
+        button_bar_height,
+        FL_ALIGN_CENTER,
+        nullptr,
+        0
+    );
 }
 
 

@@ -140,8 +140,8 @@ void CellViewer::draw_scrollbar()
         type().as_foreground_color()
     );
 
-    scroller_mid = 0;
-    if (max_scroll_offset > 0)
+    scroller_mid = y();
+    if (max_scroll_offset > y())
         scroller_mid = y() + scroll_offset() * h() / max_scroll_offset;
 
     // draw scroller (within scrollbar)
@@ -327,9 +327,19 @@ int CellViewer::handle(int event)
                 int const ex = Fl::event_x();
                 int const ey = Fl::event_y();
 
-                if (Fl::event_button() == FL_RIGHT_MOUSE)
+                if (
+                    (
+                        Fl::event_button() == FL_RIGHT_MOUSE &&
+                        Settings::nil.as_mouse_button_orientation() ==
+                                MouseButtonOrientation::L_spc_R::grab()
+                    ) ||
+                    (
+                        Fl::event_button() == FL_LEFT_MOUSE &&
+                        Settings::nil.as_mouse_button_orientation() ==
+                                MouseButtonOrientation::R_spc_L::grab()
+                    )
+                )
                 {
-
                     int const line_height = Settings::nil.as_line_height();
                     if (line_height == 0)
                         return 1;
@@ -613,7 +623,18 @@ int CellViewer::handle(int event)
 
         case FL_DRAG:
             {
-                if (Fl::event_button() == FL_RIGHT_MOUSE)
+                if (
+                    (
+                        Fl::event_button() == FL_RIGHT_MOUSE &&
+                        Settings::nil.as_mouse_button_orientation() ==
+                                MouseButtonOrientation::L_spc_R::grab()
+                    ) ||
+                    (
+                        Fl::event_button() == FL_LEFT_MOUSE &&
+                        Settings::nil.as_mouse_button_orientation() ==
+                                MouseButtonOrientation::R_spc_L::grab()
+                    )
+                )
                 {
                     int const ex = Fl::event_x();
                     int const ey = Fl::event_y();
@@ -673,7 +694,16 @@ int CellViewer::handle(int event)
             {
                 Data::restore_image();
             }
-            else if (Fl::event_button() == FL_RIGHT_MOUSE)
+            else if (
+                (
+                    Fl::event_button() == FL_RIGHT_MOUSE &&
+                    Settings::nil.as_mouse_button_orientation() == MouseButtonOrientation::L_spc_R::grab()
+                ) ||
+                (
+                    Fl::event_button() == FL_LEFT_MOUSE &&
+                    Settings::nil.as_mouse_button_orientation() == MouseButtonOrientation::R_spc_L::grab()
+                )
+            )
             {
                 copy_selection();
                 currently_selecting = false;
@@ -817,7 +847,7 @@ void CellViewer::scroll_to_y(int y_in_pix)
         return;
 
     float y_max = h();
-    float loc = y_in_pix / y_max;
+    float loc = (y_in_pix - y()) / y_max;
 
     scroll_offset() = (((int) (loc * max_scroll_offset)) / line_height) * line_height;
     if (scroll_offset() > max_scroll_offset)
@@ -892,8 +922,9 @@ void CellViewer::draw_content()
     if (line_height == 0)
         return;
 
-    int yp{y() + line_height};
-    int initial_yp{yp};
+    int yp{line_height};
+    // int yp{y() + line_height};
+    // int initial_yp{yp};
     int ch_i = -1;
     int start_ch_ii = -1;
     std::vector<std::pair<int, std::string>> const & ch = chapters();
@@ -903,7 +934,8 @@ void CellViewer::draw_content()
 
         if (offsets_dirty)
         {
-            scroll_offsets_by_chapter.push_back(yp - initial_yp);
+            // scroll_offsets_by_chapter.push_back(yp - initial_yp);
+            scroll_offsets_by_chapter.push_back(yp);
 
             // initially store current yp
             // once final yp is known (end of function),
@@ -1031,7 +1063,7 @@ void CellViewer::draw_content()
             // at this point scrollbar_labels still have offsets, so use final yp to calculate
             // the y positions
             for (size_t i = 0; i < scrollbar_labels.size(); ++i)
-                scrollbar_labels[i].first =
+                scrollbar_labels[i].first = y() +
                         (int) ((scrollbar_labels[i].first / (float) (yp)) * (h() - line_height - fl_size() / 2));
         }
 
@@ -1525,12 +1557,12 @@ void CellViewer::draw_cell(
                 xi,
                 yi,
                 xp,
-                yp - line_height - scroll_offset(),
+                y() + yp - line_height - scroll_offset(),
                 s_len * fl_width('Q'),
                 (int) (fl_size() * Settings::nil.as_line_height_factor()),
                 draw_color
             );
-            fl_draw(s, s_len, xp, yp - line_height - scroll_offset() + fl_size());
+            fl_draw(s, s_len, xp, y() + yp - line_height - scroll_offset() + fl_size());
         }
 
         if (yi < MAX_LINES)
@@ -1540,7 +1572,7 @@ void CellViewer::draw_cell(
             cells[yi][xi].ancestor_count = ancestor_count;
             cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
             cells[yi][xi].start = xp;
-            cells[yi][xi].top = yp - scroll_offset() - line_height;
+            cells[yi][xi].top = y() + yp - scroll_offset() - line_height;
             cells[yi][xi].height = line_height;
             cells[yi][xi].book = book;
             cells[yi][xi].chapter = chapter;
@@ -1671,12 +1703,12 @@ void CellViewer::draw_wrapped_term(
                     xi,
                     yi,
                     xp,
-                    yp - line_height - scroll_offset(),
+                    y() + yp - line_height - scroll_offset(),
                     s_len * fl_width('Q'),
                     (int) (fl_size() * Settings::nil.as_line_height_factor()),
                     draw_color
                 );
-                fl_draw(s, cur_chars_to_write, xp, yp - line_height - scroll_offset() + fl_size());
+                fl_draw(s, cur_chars_to_write, xp, y() + yp - line_height - scroll_offset() + fl_size());
             }
 
             if (yi < MAX_LINES)
@@ -1687,7 +1719,7 @@ void CellViewer::draw_wrapped_term(
                 cells[yi][xi].index_within_first_ancestor = index_within_first_ancestor;
                 cells[yi][xi].start = xp;
                 cells[yi][xi].end = xp_start + max_line_width + fl_width("Q");
-                top = yp - scroll_offset() - line_height;
+                top = y() + yp - scroll_offset() - line_height;
                 cells[yi][xi].top = top;
                 cells[yi][xi].book = book;
                 cells[yi][xi].chapter = chapter;
@@ -1719,12 +1751,12 @@ void CellViewer::draw_wrapped_term(
                     xi,
                     yi,
                     xp,
-                    yp - line_height - scroll_offset(),
+                    y() + yp - line_height - scroll_offset(),
                     s_len * fl_width('Q'),
                     (int) (fl_size() * Settings::nil.as_line_height_factor()),
                     draw_color
                 );
-                int typ = yp - line_height - scroll_offset() + fl_size();
+                int typ = y() + yp - line_height - scroll_offset() + fl_size();
                 fl_draw(s, cur_chars_to_write, xp + indent_x, typ);
 
                 int const x0 = xp + indent_x / 5;

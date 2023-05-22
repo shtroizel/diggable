@@ -13,7 +13,9 @@
 using TermColors = matchable::MatchBox<Viewer::Type, std::vector<Fl_Color>>;
 
 
-PROPERTYx11_MATCHABLE(
+MATCHABLE(MouseButtonOrientation, L_spc_R, R_spc_L)
+
+PROPERTYx12_MATCHABLE(
     int8_t, font_size,
     int8_t, chapter_font_size,
     int8_t, min_font_size,
@@ -25,6 +27,7 @@ PROPERTYx11_MATCHABLE(
     float, line_height_factor_huge,
     float, line_height_factor,
     int8_t, line_height,
+    MouseButtonOrientation::Type, mouse_button_orientation,
 
     Settings
 )
@@ -42,6 +45,7 @@ MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor_huge, 1.618f - 2 * ((1
 MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, Settings::nil.as_line_height_factor_standard())
 // MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, Settings::nil.as_line_height_factor_large())
 // MATCHABLE_NIL_PROPERTY_VALUE(Settings, line_height_factor, Settings::nil.as_line_height_factor_huge())
+MATCHABLE_NIL_PROPERTY_VALUE(Settings, mouse_button_orientation, MouseButtonOrientation::L_spc_R::grab())
 
 
 

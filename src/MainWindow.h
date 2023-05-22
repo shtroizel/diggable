@@ -27,4 +27,6 @@ private:
     BookViewer * book_viewer;
     LocationViewer * location_viewer;
     TermViewer * term_viewer;
+
+    float const middle_proportion{(1/1.618) * (1/1.618) * (1/1.618)};
 };

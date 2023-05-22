@@ -6,15 +6,16 @@
 #include <matchmaker.h>
 
 #include <BookViewer.h>
-#include <TermViewer.h>
 #include <Data.h>
+#include <MainWindow.h>
 #include <Settings.h>
+#include <TermViewer.h>
 #include <Viewer.h>
 
 
 
-LocationViewer::LocationViewer(int x, int y, int w, int h)
-    : CellViewer{x, y, w, h, ScrollbarLocation::Right::grab()}
+LocationViewer::LocationViewer(int x, int y, int w, int h, MainWindow * mw)
+    : CellViewer{x, y, w, h, ScrollbarLocation::Right::grab()}, main_window{mw}
 {
 }
 
@@ -61,7 +62,7 @@ void LocationViewer::locate()
     }
 
     offsets_dirty = true;
-    redraw();
+    main_window->redraw();
 }
 
 

@@ -8,12 +8,13 @@
 
 MATCHABLE_FWD(Viewer)
 class BookViewer;
+class MainWindow;
 class TermViewer;
 
 class LocationViewer : public CellViewer
 {
 public:
-    LocationViewer(int x, int y, int w, int h);
+    LocationViewer(int x, int y, int w, int h, MainWindow * mw);
     ~LocationViewer() noexcept;
     void locate();
     int count() const;
@@ -26,4 +27,5 @@ private:
 
 private:
     std::vector<std::pair<int, std::string>> locations;
+    MainWindow * main_window;
 };

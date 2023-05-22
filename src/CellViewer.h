@@ -39,6 +39,8 @@ public:
 
     virtual std::vector<std::pair<int, std::string>> const & chapters() = 0;
 
+    static int const content_margin{7};
+
 
 protected:
     void set_chapters(std::vector<int> const & chapters);
@@ -116,7 +118,6 @@ private:
     int scrollbar_width{17};
     int scroller_mid{0};
     int scroller_height{scrollbar_width * 3};
-    int const content_margin{7};
     int content_x{0};
     int content_width{0};
     int scrollbar_x{0};

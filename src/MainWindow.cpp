@@ -5,7 +5,9 @@
 #include <iostream>
 #include <filesystem>
 
+#include <FL/Fl_Box.H>
 #include <FL/Fl_Shared_Image.H>
+#include <FL/fl_draw.H>
 
 #include <matchmaker.h>
 #include <BookViewer.h>
@@ -16,20 +18,22 @@
 #include <Viewer.h>
 
 
+int const MONO_FONT{4};
+
 
 MainWindow::MainWindow(int w, int h, char const * t) : Fl_Double_Window(w, h, t)
 {
-    float middle_proportion = (1/1.618) * (1/1.618) * (1/1.618);
     begin();
     Fl_Group * group = new Fl_Group(0, 0, w, h);
+    book_viewer = new BookViewer(0, 0, (w - w * middle_proportion) * 0.5, h);
+    term_viewer = new TermViewer((w - w * middle_proportion) * 0.5, 0, w * middle_proportion, h);
     location_viewer = new LocationViewer(
         (w - w * middle_proportion) * 0.5 + w * middle_proportion,
-        0,
+        Settings::nil.as_line_height() * 2,
         (w - w * middle_proportion) * 0.5,
-        h
+        h - Settings::nil.as_line_height() * 2,
+        this
     );
-    term_viewer = new TermViewer((w - w * middle_proportion) * 0.5, 0, w * middle_proportion, h);
-    book_viewer = new BookViewer(0, 0, (w - w * middle_proportion) * 0.5, h);
     group->resizable(group);
     group->end();
     resizable(group);
@@ -50,6 +54,9 @@ MainWindow::~MainWindow()
     book_viewer = nullptr;
     term_viewer = nullptr;
     location_viewer = nullptr;
+    Data::nil.set_book_viewer(nullptr);
+    Data::nil.set_term_viewer(nullptr);
+    Data::nil.set_location_viewer(nullptr);
     Data::nil.set_main_window(nullptr);
 }
 
@@ -77,6 +84,25 @@ void MainWindow::draw()
     }
 
     Fl_Double_Window::draw();
+
+    // draw location results
+    fl_draw_box(
+        FL_FLAT_BOX,
+        (w() - w() * middle_proportion) * 0.5 + w() * middle_proportion - 1,
+        0,
+        (w() - w() * middle_proportion) * 0.5 + 1,
+        // Settings::nil.as_line_height() * 2,
+        location_viewer->y(),
+        ColorSettings::nil.as_background_color()
+    );
+    fl_font(MONO_FONT, Settings::nil.as_font_size());
+    fl_color(ColorSettings::nil.as_highlight_color());
+    std::string results_string = "Results: " + std::to_string(location_viewer->count());
+    fl_draw(
+        results_string.c_str(),
+        (w() - w() * middle_proportion) * 0.5 + w() * middle_proportion + CellViewer::content_margin,
+        Settings::nil.as_line_height() / 2 + fl_size()
+    );
 }
 
 
