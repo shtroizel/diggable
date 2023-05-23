@@ -327,6 +327,7 @@ int CellViewer::handle(int event)
                 int const ex = Fl::event_x();
                 int const ey = Fl::event_y();
 
+                // if selecting text
                 if (
                     (
                         Fl::event_button() == FL_RIGHT_MOUSE &&
@@ -345,12 +346,16 @@ int CellViewer::handle(int event)
                         return 1;
 
                     selection_start_ty = (ey - y()) / line_height;
-                    for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                    selection_start_tx = 0;
+                    if (ex > cells[selection_start_ty][selection_start_tx].end)
                     {
-                        selection_start_tx = tx;
-                        Cell & c = cells[selection_start_ty][tx];
-                        if (ex > c.start && ex < c.end)
-                            break;
+                        for (int tx = 0; tx < MAX_CELLS_PER_LINE; ++tx)
+                        {
+                            selection_start_tx = tx;
+                            Cell & c = cells[selection_start_ty][tx];
+                            if (ex > c.start && ex < c.end)
+                                break;
+                        }
                     }
 
                     currently_selecting = true;
