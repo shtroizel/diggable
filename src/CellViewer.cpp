@@ -1957,6 +1957,7 @@ void CellViewer::copy_selection()
     std::string text;
     int xi = selection_start_tx;
     int yi = selection_start_ty;
+    int next_xi = -1;
     int next_yi = -1;
 
     // if reverse selection (right -> left, bottom -> top)
@@ -1972,12 +1973,16 @@ void CellViewer::copy_selection()
     while (within_selection(xi, yi))
     {
         text += matchmaker::at(cells[yi][xi].term, nullptr);
-        if (!next_term(xi, yi, xi, next_yi))
+        if (!next_term(xi, yi, next_xi, next_yi))
             break;
 
-        if (next_yi > yi)
+        if (
+            cells[next_yi][next_xi].paragraph != cells[yi][xi].paragraph ||
+            cells[next_yi][next_xi].chapter != cells[yi][xi].chapter
+        )
             text += "\n";
 
+        xi = next_xi;
         yi = next_yi;
     }
 
