@@ -81,6 +81,14 @@ CellViewer::CellViewer(int x, int y, int w, int h, ScrollbarLocation::Type sl)
         abort();
     }
 
+    index_of_archived_link_start_code = matchmaker::lookup("]~~", &ok);
+    if (!ok)
+    {
+        std::cout << "Viewer::Viewer() --> failed to find index of ']~~'" << std::endl;
+        index_of_archived_link_start_code = -1;
+        abort();
+    }
+
     reposition();
 }
 
@@ -1001,23 +1009,35 @@ void CellViewer::draw_content()
         int ancestor_count{0};
         int index_within_first_ancestor{-1};
         bool term_is_linked_text{0};
+        bool term_is_archived_link{false};
         Fl_Color foreground_color = type().as_foreground_color();
         for (p_i = 0; p_i < p_count; ++p_i)
         {
             w_count = matchmaker::word_count(0, ch_i, p_i);
+
+            term_is_archived_link = false;
 
             for (w_i = 0; w_i < w_count; ++w_i)
             {
                 term = matchmaker::word(0, ch_i, p_i, w_i, &ancestors, &ancestor_count,
                                         &index_within_first_ancestor, &term_is_linked_text);
 
+                if (term == index_of_archived_link_start_code)
+                {
+                    term_is_archived_link = true;
+                    continue;
+                }
+
                 // apply color from term or from ancestors if term's color is the foreground_color
                 Fl_Color draw_color = ColorSettings::nil.as_term_colors().at(type())[term];
-                for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
-                    draw_color = ColorSettings::nil.as_term_colors().at(type())[ancestors[i]];
+                if (term_is_archived_link)
+                    draw_color = type().as_chapter_subtitle_color();
+                else
+                    for (int i = 0; i < ancestor_count && draw_color == foreground_color; ++i)
+                        draw_color = ColorSettings::nil.as_term_colors().at(type())[ancestors[i]];
 
                 // linked handle & text color lightened unless selected
-                if (term_is_linked_text)
+                if (term_is_linked_text || term_is_archived_link)
                     draw_color = fl_lighter(draw_color);
 
                 // draw term
