@@ -22,8 +22,9 @@ endif()
 if(matchmaker_DL STREQUAL "ON")
     add_definitions(-DMM_DYNAMIC_LOADING)
 else()
-    get_filename_component(rpath_dir "${matchmaker_DIR}/.." REALPATH)
-    set(CMAKE_INSTALL_RPATH "${rpath_dir}")
+    get_filename_component(matchmaker_name "${matchmaker_DIR}/.." REALPATH)
+    get_filename_component(matchmaker_name "${matchmaker_name}" NAME)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/${matchmaker_name}")
     find_package(matchmaker 4.0.0 REQUIRED)
 endif()
 
@@ -78,7 +79,6 @@ target_include_directories(
     matchable/include
 )
 
-
 install(TARGETS diggable DESTINATION bin)
 
 file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME})
@@ -86,5 +86,5 @@ file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME})
 install(
     DIRECTORY
     ${PROJECT_SOURCE_DIR}/data/images
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}
+    DESTINATION share/${CMAKE_PROJECT_NAME}
 )
