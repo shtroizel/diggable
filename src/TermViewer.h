@@ -65,7 +65,4 @@ private:
 
     // (start line, line count)
     std::array<std::pair<int, int>, 216> display_locations;
-
-    CompletionStack cs;
-
 };

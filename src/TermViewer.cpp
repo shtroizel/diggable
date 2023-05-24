@@ -98,6 +98,17 @@ int TermViewer::handle(int event)
         case FL_ENTER:
             return 1;
 
+        case FL_PASTE:
+            {
+                CompletionStack & cs = Data::nil.as_mutable_completion_stack();
+                cs.clear_all();
+                char const * txt = Fl::event_text();
+                for (int i = 0; i < Fl::event_length(); ++i)
+                    cs.push(txt[i]);
+            }
+            redraw();
+            return 1;
+
         case FL_KEYBOARD:
             {
                 CompletionStack & cs = Data::nil.as_mutable_completion_stack();
@@ -665,6 +676,13 @@ int TermViewer::handle(int event)
 
                     // backspace button
                     if (
+                        ey < single_line_search_bar_height() &&
+                        ex < x() + w() - margins - 17 * 2
+                    )
+                    {
+                        Fl::paste(*this, 0);
+                    }
+                    else if (
                         ey < single_line_search_bar_height() &&
                         ex > x() + w() - margins - 17 * 2
                     )
