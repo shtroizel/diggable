@@ -13,7 +13,7 @@ to build from source.
 diggable is developed on Artix Linux
 <br/>
 ```
-pacman -Sy base-devel cmake python fltk ttf-dejavu
+pacman -Sy base-devel cmake python fltk
 ```
 
 ### clone and initialize matchmaker
@@ -76,10 +76,6 @@ cd /home/shtroizel/repos/matchmaker
 git pull --rebase
 git submodule update --init --recursive
 ```
-
-## troubleshooting
-If fonts are broken, try installing a font usable by fltk - ex: pacman -S ttf-dejavu. The AppImage builds
-do not currently include fonts!
 
 ## donating to this project
 donations are greatly appreciated, thank you!<br>
