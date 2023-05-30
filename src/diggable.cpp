@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <filesystem>
+#include <string>
 
 #include <FL/Fl.H>
 #include <FL/Fl_Shared_Image.H>
@@ -54,7 +55,41 @@ int main(int argc, char **argv)
         Data::nil.set_image_dir(image_dir);
     }
 
-    Fl::set_fonts("-*");
+    int font_count = Fl::set_fonts("-*");
+
+    // try to set a font known to work well
+    std::vector<std::string> fonts;
+    for (int i = 0; i < font_count; i++)
+    {
+        std::string font_name;
+        font_name += Fl::get_font_name((Fl_Font) i);
+        std::transform(
+            font_name.begin(),
+            font_name.end(),
+            font_name.begin(),
+            [](unsigned char c){ return std::tolower(c); }
+        );
+        if (font_name.find("mono") != std::string::npos)
+        {
+            fonts.push_back(font_name);
+            // std::cout << "    --> " << font_name << std::endl;
+        }
+    }
+    if (std::find(fonts.begin(), fonts.end(), "noto sans mono") != fonts.end())
+        Fl::set_font(4, "noto sans mono");
+    else if (std::find(fonts.begin(), fonts.end(), "droid sans mono") != fonts.end())
+        Fl::set_font(4, "droid sans mono");
+    else if (std::find(fonts.begin(), fonts.end(), "liberation mono") != fonts.end())
+        Fl::set_font(4, "liberation mono");
+    else if (std::find(fonts.begin(), fonts.end(), "dejavu sans mono") != fonts.end())
+        Fl::set_font(4, "dejavu sans mono");
+    else if (std::find(fonts.begin(), fonts.end(), "bitstream vera sans mono") != fonts.end())
+        Fl::set_font(4, "bitstream vera sans mono");
+    else if (std::find(fonts.begin(), fonts.end(), "ubuntu mono") != fonts.end())
+        Fl::set_font(4, "ubuntu mono");
+    else if (std::find(fonts.begin(), fonts.end(), "mono") != fonts.end())
+        Fl::set_font(4, "mono");
+
     Fl::visual(FL_RGB);
     MainWindow * window = new MainWindow(1111, 777, "dig deeper");
     window->show(argc, argv);
