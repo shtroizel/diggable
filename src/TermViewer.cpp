@@ -103,8 +103,14 @@ int TermViewer::handle(int event)
                 CompletionStack & cs = Data::nil.as_mutable_completion_stack();
                 cs.clear_all();
                 char const * txt = Fl::event_text();
+                int cs_count = 0;
                 for (int i = 0; i < Fl::event_length(); ++i)
+                {
+                    cs_count = cs.count();
                     cs.push(txt[i]);
+                    if (cs.count() == cs_count)
+                        break;
+                }
             }
             redraw();
             return 1;
