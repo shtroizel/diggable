@@ -44,14 +44,15 @@ Location Viewer (right column), shows all of the locations where the currently s
 the book. At the bottom of the "Term Viewer" below the "Term Stack", there are 2 rows of 7 buttons. The top
 of these rows has buttons for various sorting orders. The bottom row has the following
 buttons:
-* <pre> ! </pre> --> for jump navigation (same as pressing '!' on the keyboard)
-* <pre>Del</pre> --> delete most recent term added to the term stack and re-select the prev term (same as pressing 'Del' on the keyboard)
-* <pre>Esc</pre> --> clear input area at the top of the term viewer (same as pressing 'Esc' on the keyboard)
-* <pre>F11</pre> --> toggle fullscreen mode (same as pressing 'F11' on the keyboard) --> maximize recomended instead!
-* <pre> + </pre> --> increase font size (be patient, this is slow!)
-* <pre> - </pre> --> decrease font size (be patient, this is slow!)
-* <pre>L R</pre> --> toggle mouse button inversion (useful for selecting text on touch devices)
-
+<pre>
+*  !  --> for jump navigation
+* Del --> delete most recent term added to the term stack and re-select the prev term
+* Esc --> clear input area at the top of the term viewer
+* F11 --> toggle fullscreen mode --> recommended to use maximize instead!
+*  +  --> increase font size (be patient, this is slow!)
+*  -  --> decrease font size (be patient, this is slow!)
+* L R --> toggle mouse button inversion (useful for selecting text on touch devices)
+</pre>
 
 ## building from source
 diggable can be built with modest hardware. However, matchmaker, the library that powers diggable, will
