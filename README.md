@@ -3,6 +3,56 @@ diggable provides a graphical interface to the books provided by the matchmaker 
 Note that matchmaker's book feature is new and that currently only one book is offered<br/>
 For information about matchmaker see https://github.com/shtroizel/matchmaker
 
+## AppImage releases
+The easiest way to get diggable is to download an AppImage release, set the x bit and run it. However,
+AppImage builds will take longer to start than a build done on your own. Startup times for AppImages
+can exceed 1 min (or even a few min) depending on hardware. A self-built diggable will start much faster,
+but will still require more time to start than most programs do - so be patient! To run the AppImage on
+your favorite Linux distro, do:
+'''
+wget https://github.com/shtroizel/diggable/releases/download/4966-1/diggable-4966-1-x86_64.AppImage
+chmod u+x diggable-4966-1-x86_64.AppImage
+./diggable-4966-1-x86_64.AppImage
+'''
+
+## using diggable
+Despite single-threadedness, diggable is mostly very fast. The exceptions to this are window resizing and
+font size changes, which require a second or two of patience. Also, the initial startup will require at
+least a few seconds and possibly much longer depending on hardware.<br>
+
+The interface is divided into 3 main columns. From left to right these are the "Book Viewer", "Term Viewer"
+and "Location Viewer". Diggable is optimized for mouse input but can also be used on a touch screen. Scroll
+any of these areas by using the mouse wheel, left mouse dragging within the text area or by using the
+scrollbars. Text can be selected using the right mouse button. Selected text is auto-copied to both the
+selection and copy buffers. Selecting text is useful for copy/pasting hyperlinks into your browser.
+Clicking the white input area in the top of the Term Viewer will paste selection buffer content into the
+input area (broken though in 4966-1, will be fixed for 4966-2 or build from source to get this feature
+now). The white term input area always has keyboard focus. If input has at least 1 char, then the
+"Completion" for the input is shown below the white input area. Use 'Enter' to select the first completion
+entry or click any result you like to select a term, just as you would in the Book or Location Viewers.
+Also, up/down arrow keys can be used to select the prev/next completion result - this is especially useful
+for browsing images. To browse images, use 'Esc' to clear any input (if any) and then type three tilds
+('~' chars). All images are prefixed with '~~~', so just use up/down arrow to go through them. Images are
+shown in the "Term Info" area located in the middle of the Term Viewer between the "Completion" and the
+"Term Stack". Clicking an image will enlarge it (or restore it if already enlarged). The "Term Stack" is a
+small buffer of terms that is appended to whenever a term is selected. When the buffer is full, the oldest
+term is deleted to make room for the new one. The oldest term is the bottom of the stack. The currently
+selected term is at the top of the stack. The 'Del' button or keyboard key can be used to revert the last
+selection and restore the previously selected term. Some non-image terms have synonyms. If the selected
+term has any synonyms, then they are shown in the same "Term Info" area where images are shown. The
+Location Viewer (right column), shows all of the locations where the currently selected term appears within
+the book. At the bottom of the "Term Viewer" below the "Term Stack", there are 2 rows of 7 buttons. The top
+of these rows has buttons for various sorting orders. The bottom row has the following
+buttons:
+*  !  --> for jump navigation (same as pressing '!' on the keyboard)
+* Del --> delete most recent term added to the term stack and re-select the prev term (same as pressing 'Del' on the keyboard)
+* Esc --> clear input area at the top of the term viewer (same as pressing 'Esc' on the keyboard)
+* F11 --> toggle fullscreen mode (same as pressing 'F11' on the keyboard) --> maximize recomended instead!
+*  +  --> increase font size (be patient, this is slow!)
+*  -  --> decrease font size (be patient, this is slow!)
+* L R --> toggle mouse button inversion (useful for selecting text on touch devices)
+
+
 ## building from source
 diggable can be built with modest hardware. However, matchmaker, the library that powers diggable, will
 require roughly 4GB of RAM per CPU core to compile - but even when using only 1 core, the total RAM + swap
