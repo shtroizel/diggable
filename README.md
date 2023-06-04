@@ -15,7 +15,7 @@ chmod u+x diggable-4966-1-x86_64.AppImage
 ./diggable-4966-1-x86_64.AppImage
 ```
 
-## using diggable
+## Usage
 Despite single-threadedness, diggable is mostly very fast. The exceptions to this are window resizing and
 font size changes, which require a second or two of patience. Also, the initial startup will require at
 least a few seconds and possibly much longer depending on hardware.<br>
@@ -44,13 +44,13 @@ Location Viewer (right column), shows all of the locations where the currently s
 the book. At the bottom of the "Term Viewer" below the "Term Stack", there are 2 rows of 7 buttons. The top
 of these rows has buttons for various sorting orders. The bottom row has the following
 buttons:
-*  !  --> for jump navigation (same as pressing '!' on the keyboard)
-* Del --> delete most recent term added to the term stack and re-select the prev term (same as pressing 'Del' on the keyboard)
-* Esc --> clear input area at the top of the term viewer (same as pressing 'Esc' on the keyboard)
-* F11 --> toggle fullscreen mode (same as pressing 'F11' on the keyboard) --> maximize recomended instead!
-*  +  --> increase font size (be patient, this is slow!)
-*  -  --> decrease font size (be patient, this is slow!)
-* L R --> toggle mouse button inversion (useful for selecting text on touch devices)
+* ` ! ` --> for jump navigation (same as pressing '!' on the keyboard)
+* `Del` --> delete most recent term added to the term stack and re-select the prev term (same as pressing 'Del' on the keyboard)
+* `Esc` --> clear input area at the top of the term viewer (same as pressing 'Esc' on the keyboard)
+* `F11` --> toggle fullscreen mode (same as pressing 'F11' on the keyboard) --> maximize recomended instead!
+* ` + ` --> increase font size (be patient, this is slow!)
+* ` - ` --> decrease font size (be patient, this is slow!)
+* `L R` --> toggle mouse button inversion (useful for selecting text on touch devices)
 
 
 ## building from source
