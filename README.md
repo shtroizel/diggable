@@ -23,27 +23,32 @@ least a few seconds and possibly much longer depending on hardware.<br>
 The interface is divided into 3 main columns. From left to right these are the "Book Viewer", "Term Viewer"
 and "Location Viewer". Diggable is optimized for mouse input but can also be used on a touch screen. Scroll
 any of these areas by using the mouse wheel, left mouse dragging within the text area or by using the
-scrollbars. Text can be selected using the right mouse button. Selected text is auto-copied to both the
-selection and copy buffers. Selecting text is useful for copy/pasting hyperlinks into your browser.
-Clicking the white input area in the top of the Term Viewer will paste selection buffer content into the
-input area (broken though in 4966-1, will be fixed for 4966-2 or build from source to get this feature
-now). The white term input area always has keyboard focus. If input has at least 1 char, then the
-"Completion" for the input is shown below the white input area. Use 'Enter' to select the first completion
-entry or click any result you like to select a term, just as you would in the Book or Location Viewers.
-Also, up/down arrow keys can be used to select the prev/next completion result - this is especially useful
-for browsing images. To browse images, use 'Esc' to clear any input (if any) and then type three tilds
+scrollbars. Terms can be selected using the left mouse button. Selected terms are automatically copied to
+the selection and copy buffers. The text of multiple terms can be copied (mainly for use in other programs)
+using right mouse drag. Right-drag text selections are auto-copied to both the selection and copy buffers.
+This is particularly useful for copy/pasting hyperlinks into your browser. Clicking the white input area in
+the top of the Term Viewer will paste selection buffer content into the input area (broken though in
+4966-1, will be fixed for 4966-2 or build from source to get this feature now).<br>
+
+The white term input area always has keyboard focus. If input has at least 1 char, then the "Completion"
+for the input is shown below the white input area. Use 'Enter' to select the first completion entry or
+click any result you like to select a term, just as you would in the Book or Location Viewers. Also,
+up/down arrow keys can be used to select the prev/next completion result - this is especially useful for
+browsing images. To browse images, use 'Esc' to clear any input (if any) and then type three tilds
 ('~' chars). All images are prefixed with '~~~', so just use up/down arrow to go through them. Images are
 shown in the "Term Info" area located in the middle of the Term Viewer between the "Completion" and the
-"Term Stack". Clicking an image will enlarge it (or restore it if already enlarged). The "Term Stack" is a
-small buffer of terms that is appended to whenever a term is selected. When the buffer is full, the oldest
-term is deleted to make room for the new one. The oldest term is the bottom of the stack. The currently
-selected term is at the top of the stack. The 'Del' button or keyboard key can be used to revert the last
-selection and restore the previously selected term. Some non-image terms have synonyms. If the selected
-term has any synonyms, then they are shown in the same "Term Info" area where images are shown. The
-Location Viewer (right column), shows all of the locations where the currently selected term appears within
-the book. At the bottom of the "Term Viewer" below the "Term Stack", there are 2 rows of 7 buttons. The top
-of these rows has buttons for various sorting orders. The bottom row has the following
-buttons:
+"Term Stack". Clicking an image will enlarge it (or restore it if already enlarged).<br>
+
+The "Term Stack" is a small buffer of terms that is appended to whenever a term is selected. When the
+buffer is full, the oldest term is deleted to make room for the new one. The oldest term is the bottom of
+the stack. The currently selected term is at the top of the stack. The 'Del' button (or keyboard key) can
+be used to revert the last selection and restore the previously selected term. Some non-image terms have
+synonyms. If the selected term has any synonyms, then they are shown in the same "Term Info" area where
+images are shown. The Location Viewer (right column), shows all of the locations where the currently
+selected term appears within the book.<br>
+
+At the bottom of the "Term Viewer", below the "Term Stack", there are 2 rows of 7 buttons. The top of these
+rows has buttons for various sorting orders. The bottom row has the following buttons:
 <pre>
  !  --> for jump navigation
 Del --> delete most recent term added to the term stack and re-select the prev term
@@ -53,6 +58,12 @@ F11 --> toggle fullscreen mode --> recommended to use maximize instead!
  -  --> decrease font size (be patient, this is slow!)
 L R --> toggle mouse button inversion (useful for selecting text on touch devices)
 </pre>
+
+Although there is no real search support, completion lists come close. The difference is that with
+completions, only terms that begin with the given criteria are shown - with real searching, you could also
+find results where the middle of a word matches. Also, currently all text is case-sensitive, so typing in
+useful completion prefixes like, "How", "Who" and "Why" will return different results than "how", "who" and
+"why". This unfortunate sensitivity is being worked on, and will be addressed in future diggable versions.
 
 ## building from source
 diggable can be built with modest hardware. However, matchmaker, the library that powers diggable, will
