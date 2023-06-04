@@ -9,11 +9,11 @@ AppImage builds will take longer to start than a build done on your own. Startup
 can exceed 1 min (or even a few min) depending on hardware. A self-built diggable will start much faster,
 but will still require more time to start than most programs do - so be patient! To run the AppImage on
 your favorite Linux distro, do:
-'''
+```
 wget https://github.com/shtroizel/diggable/releases/download/4966-1/diggable-4966-1-x86_64.AppImage
 chmod u+x diggable-4966-1-x86_64.AppImage
 ./diggable-4966-1-x86_64.AppImage
-'''
+```
 
 ## using diggable
 Despite single-threadedness, diggable is mostly very fast. The exceptions to this are window resizing and
