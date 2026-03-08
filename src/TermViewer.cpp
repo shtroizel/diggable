@@ -430,13 +430,12 @@ int TermViewer::handle(int event)
                 )
                 {
                     int ci = (ey - (y() + search_bar_height + line_height)) / line_height;
-                    int box_width{0};
+
                     if (ci + cs.top().display_start >= (int) c.size())
-                    {
-                        std::cout << "TermViewer::handle() --> FL_MOVE --> no term at completion stack x/y location" << std::endl;
                         return 1;
-                    }
+
                     int const term = c[ci + cs.top().display_start];
+                    int box_width{0};
                     matchmaker::at(term, &box_width);
                     box_width = box_width * fl_width("Q");
 
