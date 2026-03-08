@@ -163,7 +163,7 @@ bool MainWindow::draw_image(std::string const & image_path)
 
 void MainWindow::resize(int x, int y, int w, int h)
 {
-    Fl_Group::resize(x, y, w, h);
+    Fl_Double_Window::resize(x, y, w, h);
 
     // std::cout << "resize() --> (" << x << ", " << y << ", " << w << ", " << h << ")" << std::endl;
 
