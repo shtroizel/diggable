@@ -46,7 +46,7 @@ private:
     int info_area_height{17};
     int const button_bar_height;
     int const button_count{7};
-    int margins{5};
+    int const margins{5};
     int ts_display_start{0};
     int syn_display_start{0};
     int const * synonyms{nullptr};
