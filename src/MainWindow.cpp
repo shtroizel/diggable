@@ -117,6 +117,12 @@ bool MainWindow::draw_image(std::string const & image_path)
     }
 
     Fl_Shared_Image * shared_image = Fl_Shared_Image::get(image_path.c_str());
+    if (nullptr == shared_image)
+    {
+        std::cout << "MainWindow::draw_image() --> shared_image is null!" << std::endl;
+        return false;
+    }
+
     int orig_w = shared_image->w();
     int orig_h = shared_image->h();
 
@@ -128,12 +134,6 @@ bool MainWindow::draw_image(std::string const & image_path)
     {
         scaled_h = max_h;
         scaled_w = (int) (((double) scaled_h / (double) orig_h) * (double) orig_w);
-    }
-
-    if (nullptr == shared_image)
-    {
-        std::cout << "MainWindow::draw_image() --> shared_image is null!" << std::endl;
-        return false;
     }
 
     switch (shared_image->fail())
@@ -153,7 +153,7 @@ bool MainWindow::draw_image(std::string const & image_path)
     int draw_x = (w() - scaled_w) / 2;
     int draw_y = (h() - scaled_h) / 2;
     scaled_image->draw(draw_x, draw_y);
-    delete scaled_image;
+    scaled_image->release();
     scaled_image = nullptr;
 
     return true;

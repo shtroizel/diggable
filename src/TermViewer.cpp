@@ -431,6 +431,11 @@ int TermViewer::handle(int event)
                 {
                     int ci = (ey - (y() + search_bar_height + line_height)) / line_height;
                     int box_width{0};
+                    if (ci + cs.top().display_start >= (int) c.size())
+                    {
+                        std::cout << "TermViewer::handle() --> FL_MOVE --> no term at completion stack x/y location" << std::endl;
+                        return 1;
+                    }
                     int const term = c[ci + cs.top().display_start];
                     matchmaker::at(term, &box_width);
                     box_width = box_width * fl_width("Q");
@@ -1517,6 +1522,12 @@ bool TermViewer::draw_image(std::string const & image_path)
     int const tsh = term_stack_height();
 
     Fl_Shared_Image * shared_image = Fl_Shared_Image::get(image_path.c_str());
+    if (nullptr == shared_image)
+    {
+        std::cout << "TermViewer::draw_image() --> shared_image is null!" << std::endl;
+        return false;
+    }
+
     int orig_w = shared_image->w();
     int orig_h = shared_image->h();
 
@@ -1546,14 +1557,7 @@ bool TermViewer::draw_image(std::string const & image_path)
     );
 
 
-
     // shared_image = Fl_Shared_Image::get(image_path.c_str(), scaled_w, scaled_h);
-
-    if (nullptr == shared_image)
-    {
-        std::cout << "shared_image is null!" << std::endl;
-        return false;
-    }
 
     // std::cout << "\n  orig size: " << orig_w << ", " << orig_h << std::endl;
     // std::cout << "scaled size: " << scaled_w << ", " << scaled_h << std::endl;
@@ -1577,7 +1581,8 @@ bool TermViewer::draw_image(std::string const & image_path)
 
     int draw_x = info_x + ((w() - scaled_w) / 2);
     scaled_image->draw(draw_x, info_y + line_height);
-    delete scaled_image;
+
+    scaled_image->release();
     scaled_image = nullptr;
 
     return true;
