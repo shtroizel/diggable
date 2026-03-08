@@ -30,7 +30,7 @@ MainWindow::MainWindow(int w, int h, char const * t) : Fl_Double_Window(w, h, t)
     location_viewer = new LocationViewer(
         (w - w * middle_proportion) * 0.5 + w * middle_proportion,
         Settings::nil.as_line_height() * 2,
-        (w - w * middle_proportion) * 0.5,
+        (w - w * middle_proportion) * 0.5 + 1,
         h - Settings::nil.as_line_height() * 2,
         this
     );
@@ -88,9 +88,9 @@ void MainWindow::draw()
     // draw location results
     fl_draw_box(
         FL_FLAT_BOX,
-        (w() - w() * middle_proportion) * 0.5 + w() * middle_proportion - 1,
+        (w() - w() * middle_proportion) * 0.5 + w() * middle_proportion - 2,
         0,
-        (w() - w() * middle_proportion) * 0.5 + 1,
+        (w() - w() * middle_proportion) * 0.5 + 3,
         // Settings::nil.as_line_height() * 2,
         location_viewer->y(),
         ColorSettings::nil.as_background_color()
